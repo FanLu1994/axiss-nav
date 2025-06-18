@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  categories Category[]
+  links      Link[]
+
+  @@map("users")
+}
+
+// 分类模型
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  color       String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links  Link[]
+
+  @@map("categories")
+}
+
+// 链接模型
+model Link {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  description String?
+  icon        String?
+  tags        String[]
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  clickCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@map("links")
+}
+
+// 用户角色枚举
+enum Role {
+  ADMIN
+  USER
+} 
