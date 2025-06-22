@@ -30,7 +30,7 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-center bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer border border-transparent hover:border-blue-200 hover:scale-[1.02] min-w-0"
+      className="group flex items-center bg-white/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer border border-white/20 hover:border-blue-200/50 hover:scale-[1.02] min-w-0"
       title={title}
     >
       <div className="flex-shrink-0 mr-3">
@@ -56,7 +56,7 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
               <button
                 key={index}
                 onClick={(e) => handleTagClick(e, tag)}
-                className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200"
+                className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
               >
                 {tag}
               </button>

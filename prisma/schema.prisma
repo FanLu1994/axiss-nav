@@ -21,14 +21,12 @@ model User {
   updatedAt DateTime @updatedAt
 
   // 关联关系
-  categories Category[]
-  links      Link[]
-
-  @@map("users")
+  links     Link[]
+  tags      Tag[]    // 仅用于Prisma关系校验
 }
 
 // 分类模型
-model Category {
+model Tag {
   id          String   @id @default(cuid())
   name        String
   description String?
@@ -42,9 +40,10 @@ model Category {
   // 关联关系
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  links  Link[]
+  links  Link[] @relation("LinkTags")
 
-  @@map("categories")
+  @@map("tags")
+  @@unique([userId, name])
 }
 
 // 链接模型
@@ -54,7 +53,6 @@ model Link {
   url         String
   description String?
   icon        String?
-  tags        String[]
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   clickCount  Int      @default(0)
@@ -62,10 +60,9 @@ model Link {
   updatedAt   DateTime @updatedAt
 
   // 关联关系
-  userId     String
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryId String?
-  category   Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags   Tag[]  @relation("LinkTags")
 
   @@map("links")
 }

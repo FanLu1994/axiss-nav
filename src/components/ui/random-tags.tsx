@@ -47,7 +47,7 @@ export function RandomTags({ links, onTagClick, onRefresh, tagSeed }: RandomTags
           <button
             key={index}
             onClick={() => onTagClick(tag)}
-            className="px-3 py-1.5 text-xs font-medium bg-white text-gray-600 rounded-full border border-gray-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors duration-200 shadow-sm"
+            className="px-3 py-1.5 text-xs font-medium bg-white/80 backdrop-blur-sm text-gray-600 rounded-full border border-white/20 hover:bg-blue-50/80 hover:text-blue-600 hover:border-blue-200/50 transition-colors duration-200 shadow-sm cursor-pointer"
           >
             {tag}
           </button>
@@ -55,7 +55,7 @@ export function RandomTags({ links, onTagClick, onRefresh, tagSeed }: RandomTags
       </div>
       <button
         onClick={onRefresh}
-        className="px-4 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full border border-gray-200 hover:bg-gray-200 hover:text-gray-700 transition-colors duration-200 flex-shrink-0"
+        className="px-4 py-1.5 text-xs font-medium bg-gray-100/80 backdrop-blur-sm text-gray-600 rounded-full border border-white/20 hover:bg-gray-200/80 hover:text-gray-700 transition-colors duration-200 flex-shrink-0 cursor-pointer"
       >
         换一批
       </button>
