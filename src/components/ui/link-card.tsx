@@ -52,15 +52,18 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
         )}
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {tags.slice(0, 2).map((tag, index) => (
-              <button
-                key={index}
-                onClick={(e) => handleTagClick(e, tag)}
-                className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
-              >
-                {tag}
-              </button>
-            ))}
+            {tags.slice(0, 2).map((tag: any, index) => {
+              const tagName = typeof tag === 'string' ? tag : tag.name
+              return (
+                <button
+                  key={index}
+                  onClick={(e) => handleTagClick(e, tagName)}
+                  className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200"
+                >
+                  {tagName}
+                </button>
+              )
+            })}
             {tags.length > 2 && (
               <span className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">
                 +{tags.length - 2}

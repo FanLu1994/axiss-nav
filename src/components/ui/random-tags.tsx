@@ -25,7 +25,15 @@ export function RandomTags({ links, onTagClick, onRefresh, tagSeed }: RandomTags
   const allTags = useMemo(() => {
     const tagSet = new Set<string>()
     links.forEach(link => {
-      link.tags?.forEach(tag => tagSet.add(tag))
+      if (link.tags && Array.isArray(link.tags)) {
+        link.tags.forEach((tag: any) => {
+          if (typeof tag === 'string') {
+            tagSet.add(tag)
+          } else if (tag && typeof tag === 'object' && tag.name) {
+            tagSet.add(tag.name)
+          }
+        })
+      }
     })
     return Array.from(tagSet)
   }, [links])
