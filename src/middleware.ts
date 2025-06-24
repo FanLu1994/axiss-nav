@@ -2,22 +2,32 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/utils'
 
-// 需要身份验证的API路由
+// 需要身份验证的API路由和方法
 const protectedRoutes = [
   '/api/categories',
-  '/api/links',
   '/api/users'
 ]
 
+// 需要身份验证的特定路由和方法组合
+const protectedMethods = {
+  '/api/links': ['POST', 'PUT', 'DELETE'], // GET 方法不需要验证
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const method = request.method
 
-  // 检查是否是受保护的路由
+  // 检查是否是完全受保护的路由
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname.startsWith(route)
   )
 
-  if (isProtectedRoute) {
+  // 检查是否是特定方法受保护的路由
+  const isProtectedMethod = Object.entries(protectedMethods).some(([route, methods]) => 
+    pathname.startsWith(route) && methods.includes(method)
+  )
+
+  if (isProtectedRoute || isProtectedMethod) {
     const authHeader = request.headers.get('authorization')
     
     if (!authHeader) {

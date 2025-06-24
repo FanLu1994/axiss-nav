@@ -47,24 +47,23 @@ export default function Home() {
     }
   }
 
-  // 加载数据 - 不需要登录也可以查看
+  // 加载数据 - 所有用户都可以查看所有链接
   const fetchLinks = async () => {
     setLoading(true)
-    const token = localStorage.getItem('token')
-    const headers: Record<string, string> = {}
-    if (token) {
-      headers.authorization = `Bearer ${token}`
-    }
-    
-    const res = await fetch("/api/links", { headers })
-    const data = await res.json()
-    if (Array.isArray(data)) {
-      setLinks(data)
-    } else {
-      setLinks([])
-      if (data.error) {
-        console.error(data.error)
+    try {
+      const res = await fetch("/api/links")
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setLinks(data)
+      } else {
+        setLinks([])
+        if (data.error) {
+          console.error('获取链接失败:', data.error)
+        }
       }
+    } catch (error) {
+      console.error('获取链接失败:', error)
+      setLinks([])
     }
     setLoading(false)
   }
@@ -236,7 +235,11 @@ export default function Home() {
         </div>
       </div>
       <div className="w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 relative z-10">
-        {filteredLinks.length === 0 ? (
+        {loading ? (
+          <div className="col-span-full text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
+            加载中...
+          </div>
+        ) : filteredLinks.length === 0 ? (
           <div className="col-span-full text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
             暂无收藏网址
           </div>
