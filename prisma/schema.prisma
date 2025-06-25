@@ -30,7 +30,7 @@ model Tag {
   id          String   @id @default(cuid())
   name        String
   description String?
-  icon        String?
+  icon        String?  @db.Text // 改为Text类型以存储较长的Base64字符串
   color       String?
   order       Int      @default(0)
   isActive    Boolean  @default(true)
@@ -52,7 +52,7 @@ model Link {
   title       String
   url         String
   description String?
-  icon        String?
+  icon        String?  @db.Text // 改为Text类型以存储较长的Base64字符串
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   clickCount  Int      @default(0)

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { getFaviconAsBase64 } from '../src/lib/utils'
 
 const prisma = new PrismaClient()
 
@@ -92,14 +93,13 @@ async function main() {
 
   console.log('✅ 标签创建完成')
 
-  // 为管理员用户创建链接
-  const links = [
+  // 定义链接数据（不包含icon，稍后获取）
+  const linksData = [
     // 社交媒体
     {
       title: '微信网页版',
       url: 'https://wx.qq.com/',
       description: '微信网页版，随时随地聊天',
-      icon: '💬',
       order: 1,
       userId: adminUser.id,
       tagIds: [socialTag.id],
@@ -108,7 +108,6 @@ async function main() {
       title: 'QQ空间',
       url: 'https://qzone.qq.com/',
       description: '记录生活点滴',
-      icon: '🌟',
       order: 2,
       userId: adminUser.id,
       tagIds: [socialTag.id],
@@ -117,7 +116,6 @@ async function main() {
       title: '微博',
       url: 'https://weibo.com/',
       description: '热点话题，实时关注',
-      icon: '📱',
       order: 3,
       userId: adminUser.id,
       tagIds: [socialTag.id],
@@ -128,7 +126,6 @@ async function main() {
       title: 'GitHub',
       url: 'https://github.com/',
       description: '全球最大的代码托管平台',
-      icon: '🐙',
       order: 4,
       userId: adminUser.id,
       tagIds: [devTag.id],
@@ -137,7 +134,6 @@ async function main() {
       title: 'Stack Overflow',
       url: 'https://stackoverflow.com/',
       description: '程序员问答社区',
-      icon: '❓',
       order: 5,
       userId: adminUser.id,
       tagIds: [devTag.id],
@@ -146,7 +142,6 @@ async function main() {
       title: 'MDN Web Docs',
       url: 'https://developer.mozilla.org/',
       description: 'Web 开发技术文档',
-      icon: '📚',
       order: 6,
       userId: adminUser.id,
       tagIds: [devTag.id],
@@ -157,7 +152,6 @@ async function main() {
       title: '网易新闻',
       url: 'https://news.163.com/',
       description: '网易新闻中心',
-      icon: '📰',
       order: 7,
       userId: adminUser.id,
       tagIds: [newsTag.id],
@@ -166,7 +160,6 @@ async function main() {
       title: '腾讯新闻',
       url: 'https://news.qq.com/',
       description: '腾讯新闻资讯',
-      icon: '📡',
       order: 8,
       userId: adminUser.id,
       tagIds: [newsTag.id],
@@ -177,7 +170,6 @@ async function main() {
       title: '哔哩哔哩',
       url: 'https://www.bilibili.com/',
       description: '年轻人的视频社区',
-      icon: '📺',
       order: 9,
       userId: adminUser.id,
       tagIds: [entertainmentTag.id],
@@ -186,7 +178,6 @@ async function main() {
       title: '优酷',
       url: 'https://www.youku.com/',
       description: '优酷视频',
-      icon: '🎥',
       order: 10,
       userId: adminUser.id,
       tagIds: [entertainmentTag.id],
@@ -197,7 +188,6 @@ async function main() {
       title: '百度翻译',
       url: 'https://fanyi.baidu.com/',
       description: '在线翻译工具',
-      icon: '🌐',
       order: 11,
       userId: adminUser.id,
       tagIds: [toolsTag.id],
@@ -206,24 +196,33 @@ async function main() {
       title: '草料二维码',
       url: 'https://cli.im/',
       description: '二维码生成工具',
-      icon: '📱',
       order: 12,
       userId: adminUser.id,
       tagIds: [toolsTag.id],
     },
   ]
 
-  // 创建链接并关联标签
-  for (const linkData of links) {
+  // 创建链接并获取真实favicon
+  console.log('🔄 开始获取网站图标并创建链接...')
+  
+  for (const linkData of linksData) {
     const { tagIds, ...linkInfo } = linkData
+    
+    console.log(`正在获取 ${linkInfo.title} 的favicon...`)
+    const favicon = await getFaviconAsBase64(linkInfo.url)
+    
     await prisma.link.create({
       data: {
         ...linkInfo,
+        icon: favicon, // 使用获取到的favicon，如果获取失败则使用默认图标
         tags: {
-          connect: tagIds.map(id => ({ id })),
+          connect: tagIds.map((id: string) => ({ id })),
         },
       },
     })
+    
+    // 添加延迟避免请求过快
+    await new Promise(resolve => setTimeout(resolve, 200))
   }
 
   console.log('✅ 链接创建完成')
@@ -240,33 +239,44 @@ async function main() {
     },
   })
 
-  await prisma.link.create({
-    data: {
+  // 为普通用户创建链接（也获取真实favicon）
+  const userLinks = [
+    {
       title: '百度',
       url: 'https://www.baidu.com/',
       description: '百度搜索',
-      icon: '🔍',
       order: 1,
       userId: normalUser.id,
-      tags: {
-        connect: [{ id: userPersonalTag.id }],
-      },
+      tagIds: [userPersonalTag.id],
     },
-  })
-
-  await prisma.link.create({
-    data: {
+    {
       title: '谷歌',
       url: 'https://www.google.com/',
       description: '谷歌搜索',
-      icon: '🌍',
       order: 2,
       userId: normalUser.id,
-      tags: {
-        connect: [{ id: userPersonalTag.id }],
-      },
+      tagIds: [userPersonalTag.id],
     },
-  })
+  ]
+
+  for (const linkData of userLinks) {
+    const { tagIds, ...linkInfo } = linkData
+    
+    console.log(`正在获取 ${linkInfo.title} 的favicon...`)
+    const favicon = await getFaviconAsBase64(linkInfo.url)
+    
+    await prisma.link.create({
+      data: {
+        ...linkInfo,
+        icon: favicon,
+        tags: {
+          connect: tagIds.map((id: string) => ({ id })),
+        },
+      },
+    })
+    
+    await new Promise(resolve => setTimeout(resolve, 200))
+  }
 
   console.log('✅ 普通用户数据创建完成')
   console.log('🎉 种子数据创建完成！')
