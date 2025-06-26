@@ -2,11 +2,40 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserFromToken } from '@/lib/utils'
 
-// 获取所有链接 - 所有用户都可以查看所有链接
-export async function GET() {
+// 获取链接 - 支持分页和搜索
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const pageSize = parseInt(searchParams.get('pageSize') || '20')
+    const search = searchParams.get('search') || ''
+    
+    // 构建搜索条件
+    const whereCondition: any = { isActive: true }
+    
+    if (search) {
+      whereCondition.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { url: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        {
+          tags: {
+            some: {
+              name: { contains: search, mode: 'insensitive' }
+            }
+          }
+        }
+      ]
+    }
+
+    const skip = (page - 1) * pageSize
+
+    // 获取总数
+    const total = await prisma.link.count({ where: whereCondition })
+
+    // 获取分页数据
     const links = await prisma.link.findMany({
-      where: { isActive: true },
+      where: whereCondition,
       include: {
         tags: {
           select: {
@@ -23,10 +52,21 @@ export async function GET() {
           }
         }
       },
-      orderBy: { order: 'asc' }
+      orderBy: { order: 'asc' },
+      skip,
+      take: pageSize
     })
     
-    return NextResponse.json(links)
+    return NextResponse.json({
+      data: links,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+        hasMore: page < Math.ceil(total / pageSize)
+      }
+    })
   } catch (error) {
     console.error('获取链接错误:', error)
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })

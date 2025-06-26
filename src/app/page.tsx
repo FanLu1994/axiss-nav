@@ -8,17 +8,24 @@ import { LinkCard } from "@/components/ui/link-card"
 import { RandomTags } from "@/components/ui/random-tags"
 import { Particles } from "@/components/ui/particles"
 import { Toaster } from "@/components/ui/sonner"
+import { InfiniteVirtualScroll } from "@/components/ui/infinite-virtual-scroll"
+import { useResponsiveColumns } from "@/components/ui/use-responsive-columns"
+import { useContainerHeight } from "@/components/ui/use-container-height"
 import { useRouter } from "next/navigation"
 
 export default function Home() {
   const [search, setSearch] = useState("")
   const [open, setOpen] = useState(false)
   const [links, setLinks] = useState<any[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [form, setForm] = useState({ title: "", url: "", description: "", tags: "" })
   const [tagSeed, setTagSeed] = useState(0)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
+  const columns = useResponsiveColumns()
+  const containerHeight = useContainerHeight(300)
+  const pageSize = 20
 
   // 检查用户登录状态
   useEffect(() => {
@@ -47,39 +54,75 @@ export default function Home() {
     }
   }
 
-  // 加载数据 - 所有用户都可以查看所有链接
-  const fetchLinks = async () => {
+  // 加载初始数据
+  const fetchInitialLinks = async (searchQuery = "") => {
     setLoading(true)
     try {
-      const res = await fetch("/api/links")
-      const data = await res.json()
-      if (Array.isArray(data)) {
-        setLinks(data)
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: pageSize.toString(),
+        ...(searchQuery && { search: searchQuery })
+      })
+      
+      const res = await fetch(`/api/links?${params}`)
+      const response = await res.json()
+      
+      if (response.data && Array.isArray(response.data)) {
+        setLinks(response.data)
+        setTotalCount(response.pagination.total)
       } else {
         setLinks([])
-        if (data.error) {
-          console.error('获取链接失败:', data.error)
+        setTotalCount(0)
+        if (response.error) {
+          console.error('获取链接失败:', response.error)
         }
       }
     } catch (error) {
       console.error('获取链接失败:', error)
       setLinks([])
+      setTotalCount(0)
     }
     setLoading(false)
   }
 
+  // 加载更多数据
+  const loadMoreLinks = async (page: number, searchQuery?: string) => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        ...(searchQuery && { search: searchQuery })
+      })
+      
+      const res = await fetch(`/api/links?${params}`)
+      const response = await res.json()
+      
+      if (response.data && Array.isArray(response.data)) {
+        return {
+          data: response.data,
+          hasMore: response.pagination.hasMore
+        }
+      } else {
+        return { data: [], hasMore: false }
+      }
+    } catch (error) {
+      console.error('加载更多链接失败:', error)
+      return { data: [], hasMore: false }
+    }
+  }
+
   useEffect(() => {
-    fetchLinks()
+    fetchInitialLinks()
   }, [])
 
-  const filteredLinks = links.filter(link =>
-    link.title.includes(search) || 
-    link.url.includes(search) || 
-    (link.description?.includes(search)) || 
-    (link.tags && Array.isArray(link.tags) && link.tags.some((tag: any) => 
-      typeof tag === 'string' ? tag.includes(search) : tag.name?.includes(search)
-    ))
-  )
+  // 当搜索条件改变时重新获取数据
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      fetchInitialLinks(search)
+    }, 300) // 防抖处理
+
+    return () => clearTimeout(delayedSearch)
+  }, [search])
 
   // 添加新链接
   const handleAdd = async () => {
@@ -115,7 +158,7 @@ export default function Home() {
         alert("添加成功")
         setForm({ title: "", url: "", description: "", tags: "" })
         setOpen(false)
-        fetchLinks()
+        fetchInitialLinks(search)
       } else {
         const data = await res.json()
         alert(data.error || "添加失败")
@@ -169,6 +212,7 @@ export default function Home() {
         ) : (
           <Button 
             onClick={handleLogin}
+            size="sm"
             className="bg-gray-800 hover:bg-gray-900 text-white shadow-md"
           >
             登录
@@ -234,23 +278,37 @@ export default function Home() {
           )}
         </div>
       </div>
-      <div className="w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 relative z-10">
+      <div className="w-full max-w-6xl relative z-10">
         {loading ? (
-          <div className="col-span-full text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
+          <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
             加载中...
           </div>
-        ) : filteredLinks.length === 0 ? (
-          <div className="col-span-full text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
+        ) : links.length === 0 ? (
+          <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
             暂无收藏网址
           </div>
         ) : (
-          filteredLinks.map(link => (
-            <LinkCard
-              key={link.id}
-              {...link}
-              onTagClick={handleTagClick}
-            />
-          ))
+          <InfiniteVirtualScroll
+            initialItems={links}
+            totalCount={totalCount}
+            itemHeight={90}
+            containerHeight={containerHeight}
+            columns={columns}
+            pageSize={pageSize}
+            loadMore={loadMoreLinks}
+            gap={6}
+            className=" backdrop-blur-sm rounded-xl p-4"
+            search={search}
+            loading={loading}
+            hideScrollbar={true}
+            renderItem={(link: any) => (
+              <LinkCard
+                key={link.id}
+                {...link}
+                onTagClick={handleTagClick}
+              />
+            )}
+          />
         )}
       </div>
       <Toaster />
