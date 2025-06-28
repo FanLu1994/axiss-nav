@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const [form, setForm] = useState({ username: "", password: "" })
@@ -14,7 +15,9 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.username || !form.password) {
-      alert("用户名和密码不能为空")
+      toast.error("用户名和密码不能为空",{
+        position:"top-center"
+      })
       return
     }
 
@@ -29,13 +32,19 @@ export default function LoginPage() {
       
       if (res.ok) {
         localStorage.setItem('token', data.token)
-        alert("登录成功")
+        toast.success("登录成功",{
+          position:"top-center"
+        })
         router.push("/")
       } else {
-        alert(data.error || "登录失败")
+        toast.error(data.error || "登录失败",{
+          position:"top-center"
+        })
       }
     } catch (error) {
-      alert("登录失败，请稍后重试")
+      toast.error("登录失败，请稍后重试",{
+        position:"top-center"
+      })
     } finally {
       setLoading(false)
     }

@@ -4,14 +4,15 @@ import { useState, ChangeEvent, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { LinkCard } from "@/components/ui/link-card"
-import { RandomTags } from "@/components/ui/random-tags"
-import { Particles } from "@/components/ui/particles"
+import { LinkCard } from "@/components/link-card"
+import { RandomTags } from "@/components/random-tags"
+import { Particles } from "@/components/particles"
 import { Toaster } from "@/components/ui/sonner"
-import { InfiniteVirtualScroll } from "@/components/ui/infinite-virtual-scroll"
-import { useResponsiveColumns } from "@/components/ui/use-responsive-columns"
-import { useContainerHeight } from "@/components/ui/use-container-height"
+import { InfiniteVirtualScroll } from "@/components/infinite-virtual-scroll"
+import { useResponsiveColumns } from "@/components/use-responsive-columns"
+import { useContainerHeight } from "@/components/use-container-height"
 import { useRouter } from "next/navigation"
+import {toast} from "sonner"
 
 export default function Home() {
   const [search, setSearch] = useState("")
@@ -184,7 +185,7 @@ export default function Home() {
     localStorage.removeItem('token')
     setUser(null)
     setLinks([])
-    alert("已退出登录")
+    toast.success("已退出登录")
   }
 
   const handleLogin = () => {
