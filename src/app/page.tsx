@@ -19,7 +19,7 @@ export default function Home() {
   const [open, setOpen] = useState(false)
   const [links, setLinks] = useState<any[]>([])
   const [totalCount, setTotalCount] = useState(0)
-  const [form, setForm] = useState({ title: "", url: "", description: "", tags: "" })
+  const [form, setForm] = useState({ url: "" })
   const [tagSeed, setTagSeed] = useState(0)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
@@ -132,13 +132,14 @@ export default function Home() {
       return
     }
     
-    if (!form.title || !form.url) {
-      alert("标题和网址不能为空")
+    if (!form.url) {
+      toast.error("网址不能为空")
       return
     }
     
     const token = localStorage.getItem('token')
-    const tags = form.tags ? form.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : []
+    console.log('前端获取的token:', token) // 调试信息
+    console.log('发送的认证头:', `Bearer ${token}`) // 调试信息
     
     try {
       const res = await fetch("/api/links", {
@@ -148,24 +149,21 @@ export default function Home() {
           "authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          title: form.title,
-          url: form.url,
-          description: form.description,
-          tags
+          url: form.url
         })
       })
       
       if (res.ok) {
-        alert("添加成功")
-        setForm({ title: "", url: "", description: "", tags: "" })
+        toast.success("添加成功")
+        setForm({ url: "" })
         setOpen(false)
         fetchInitialLinks(search)
       } else {
         const data = await res.json()
-        alert(data.error || "添加失败")
+        toast.error(data.error || "添加失败")
       }
     } catch (error) {
-      alert("添加失败，请稍后重试")
+      toast.error("添加失败，请稍后重试")
     }
   }
 
@@ -253,25 +251,13 @@ export default function Home() {
                 </DialogHeader>
                 <div className="space-y-3">
                   <Input
-                    placeholder="标题"
-                    value={form.title}
-                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  />
-                  <Input
                     placeholder="网址（https://...）"
                     value={form.url}
                     onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
                   />
-                  <Input
-                    placeholder="描述（可选）"
-                    value={form.description}
-                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  />
-                  <Input
-                    placeholder="标签（用逗号分隔，如：搜索,工具）"
-                    value={form.tags}
-                    onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                  />
+                  <div className="text-sm text-gray-500">
+                    只需输入网址，系统会自动获取标题和图标
+                  </div>
                   <Button className="w-full mt-2" onClick={handleAdd} size="lg">保存</Button>
                 </div>
               </DialogContent>

@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -27,17 +28,29 @@ interface JWTPayload {
 
 // 生成JWT令牌
 export function generateToken(payload: JWTPayload): string {
-  const secret = process.env.JWT_SECRET || 'fallback-secret'
-  return jwt.sign(payload, secret, { expiresIn: '7d' })
+  const secret = process.env.JWT_SECRET || 'fallback-secret';
+  console.log('生成令牌使用的secret:', secret); // 新增：打印生成时使用的secret
+  return jwt.sign(payload, secret, { expiresIn: '7d' });
 }
 
 // 验证JWT令牌
 export function verifyToken(token: string): JWTPayload | null {
-  const secret = process.env.JWT_SECRET || 'fallback-secret'
+  const secret = process.env.JWT_SECRET || 'fallback-secret';
+  console.log('验证令牌使用的secret:', secret); // 你已有此行
+  console.log('尝试验证的token:', token); // 新增：打印收到的token
+
   try {
-    return jwt.verify(token, secret) as JWTPayload
-  } catch {
-    return null
+    return jwt.verify(token, secret) as JWTPayload;
+  } catch (error) {
+    if (error instanceof TokenExpiredError) {
+      console.error('JWT验证失败: 令牌已过期');
+    } else if (error instanceof JsonWebTokenError) {
+      console.error('JWT验证失败: 无效的令牌 (例如签名不正确, 格式错误等)');
+      console.error('具体错误信息:', error.message); // 打印具体的错误消息
+    } else {
+      console.error('JWT验证失败: 未知错误', error);
+    }
+    return null;
   }
 }
 
