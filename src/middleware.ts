@@ -6,7 +6,6 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   // 简单地让所有请求通过，认证交给各个API路由处理
-  console.log('中间件: 请求通过', request.nextUrl.pathname, request.method)
   return NextResponse.next()
 }
 

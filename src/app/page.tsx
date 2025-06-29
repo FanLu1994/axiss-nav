@@ -23,6 +23,7 @@ export default function Home() {
   const [tagSeed, setTagSeed] = useState(0)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const router = useRouter()
   const columns = useResponsiveColumns()
   const containerHeight = useContainerHeight(300)
@@ -138,8 +139,6 @@ export default function Home() {
     }
     
     const token = localStorage.getItem('token')
-    console.log('前端获取的token:', token) // 调试信息
-    console.log('发送的认证头:', `Bearer ${token}`) // 调试信息
     
     try {
       const res = await fetch("/api/links", {
@@ -182,7 +181,6 @@ export default function Home() {
   const handleLogout = () => {
     localStorage.removeItem('token')
     setUser(null)
-    setLinks([])
     toast.success("已退出登录")
   }
 
@@ -195,15 +193,15 @@ export default function Home() {
       <Particles />
       
       {/* 右上角登录状态 */}
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute top-4 right-4 z-20 group">
         {user ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">欢迎，{user.username}</span>
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <span className="text-sm text-gray-500">欢迎，{user.username}</span>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleLogout}
-              className="bg-white/80 backdrop-blur-sm"
+              className="bg-white/60 backdrop-blur-sm border-gray-200/50 text-gray-600 hover:bg-white/80 hover:text-gray-700"
             >
               退出
             </Button>
@@ -212,7 +210,8 @@ export default function Home() {
           <Button 
             onClick={handleLogin}
             size="sm"
-            className="bg-gray-800 hover:bg-gray-900 text-white shadow-md"
+            variant="ghost"
+            className="text-gray-400 hover:text-gray-600 hover:bg-white/30 backdrop-blur-sm border border-gray-200/30 hover:border-gray-300/50 transition-all duration-200"
           >
             登录
           </Button>
@@ -222,25 +221,65 @@ export default function Home() {
       <div className="w-full max-w-2xl flex flex-col items-center mb-8 relative z-10">
         {/* 随机标签 */}
         <RandomTags
-          links={links}
           onTagClick={handleTagClick}
           onRefresh={handleRefreshTags}
           tagSeed={tagSeed}
         />
         
         <div className="flex w-full max-w-md gap-3 mb-8">
-          <Input
-            placeholder="搜索网址..."
-            value={search}
-            onChange={handleInputChange}
-            className="flex-1 bg-white shadow-sm rounded-full px-5 py-2 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
+          <div className="relative flex-1">
+            <Input
+              placeholder="搜索网址..."
+              value={search}
+              onChange={handleInputChange}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              className="w-full bg-transparent !border-0 !border-b-2 !border-transparent focus:!ring-0 focus:!ring-offset-0 focus:outline-none !shadow-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus-visible:!shadow-none px-4 py-3 pr-10 text-gray-700 placeholder:text-gray-400 transition-all duration-300 !rounded-none"
+            />
+            {/* 虚线动画效果 */}
+            <div className="absolute bottom-0 left-0 w-full h-px">
+              <div 
+                className={`h-full transition-all ${
+                  isSearchFocused 
+                    ? 'w-full duration-500 ease-out' 
+                    : 'w-0 duration-300 ease-in'
+                }`}
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 3px, #9ca3af 3px, #9ca3af 6px)',
+                  backgroundSize: '6px 1px',
+                  transformOrigin: 'left'
+                }}
+              ></div>
+            </div>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 hover:bg-blue-50/50 rounded-full p-1.5 transition-all duration-200"
+                type="button"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
           {user && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button 
-                  className="rounded-full px-6 text-base font-semibold shadow-md" 
-                  size="lg"
+                  className="rounded-full w-10 h-10 p-0 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-700 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200/50 hover:border-gray-300/60 text-lg font-light cursor-pointer" 
+                  size="sm"
+                  variant="outline"
                 >
                   +
                 </Button>

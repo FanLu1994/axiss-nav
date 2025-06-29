@@ -1,72 +1,136 @@
-import { useMemo } from "react"
+import { useState, useEffect } from "react"
 
-interface Link {
+interface Tag {
   id: string
-  title: string
-  url: string
-  description?: string
-  tags?: string[]
-  order?: number
-  isActive?: boolean
-  clickCount?: number
-  createdAt?: Date
-  updatedAt?: Date
+  name: string
+  color?: string
+  icon?: string
+  count: number
 }
 
 interface RandomTagsProps {
-  links: Link[]
   onTagClick: (tag: string) => void
   onRefresh: () => void
   tagSeed: number
 }
 
-export function RandomTags({ links, onTagClick, onRefresh, tagSeed }: RandomTagsProps) {
-  // 获取所有唯一的标签
-  const allTags = useMemo(() => {
-    const tagSet = new Set<string>()
-    links.forEach(link => {
-      if (link.tags && Array.isArray(link.tags)) {
-        link.tags.forEach((tag: any) => {
-          if (typeof tag === 'string') {
-            tagSet.add(tag)
-          } else if (tag && typeof tag === 'object' && tag.name) {
-            tagSet.add(tag.name)
-          }
-        })
+export function RandomTags({ onTagClick, onRefresh, tagSeed }: RandomTagsProps) {
+  const [tags, setTags] = useState<Tag[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // 从API获取随机标签
+  const fetchRandomTags = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/tags?limit=15')
+      const response = await res.json()
+      
+      if (response.data && Array.isArray(response.data)) {
+        setTags(response.data)
+      } else {
+        setTags([])
       }
-    })
-    return Array.from(tagSet)
-  }, [links])
+    } catch (error) {
+      console.error('获取随机标签失败:', error)
+      setTags([])
+    }
+    setLoading(false)
+  }
 
-  // 随机选择6个标签显示
-  const randomTags = useMemo(() => {
-    const shuffled = [...allTags].sort(() => 0.5 - Math.random())
-    return shuffled.slice(0, 6)
-  }, [allTags, tagSeed])
+  // 初始加载和刷新时获取标签
+  useEffect(() => {
+    fetchRandomTags()
+  }, [tagSeed])
 
-  if (randomTags.length === 0) {
+  const handleRefresh = () => {
+    onRefresh()
+    fetchRandomTags()
+  }
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto mb-4 py-2">
+        <div className="text-center text-xs text-gray-400">加载标签中...</div>
+      </div>
+    )
+  }
+
+  if (tags.length === 0) {
     return null
   }
 
+  // 为了真正无缝循环，我们需要确保有足够的标签来填满屏幕
+  const duplicatedTags = [...tags, ...tags, ...tags]
+  const animationDuration = Math.max(30, tags.length * 3)
+
   return (
-    <div className="flex items-center justify-center gap-3 mb-6">
-      <div className="flex flex-wrap gap-2">
-        {randomTags.map((tag, index) => (
-          <button
-            key={index}
-            onClick={() => onTagClick(tag)}
-            className="px-3 py-1.5 text-xs font-medium bg-white/80 backdrop-blur-sm text-gray-600 rounded-full border border-white/20 hover:bg-blue-50/80 hover:text-blue-600 hover:border-blue-200/50 transition-colors duration-200 shadow-sm cursor-pointer"
+    <div className="flex items-center gap-3 w-full max-w-7xl mx-auto mb-4 group">
+      {/* 标签滚动容器 */}
+      <div className="flex-1 overflow-hidden">
+        <div className="py-2">
+          <div 
+            className="flex gap-2"
+            style={{ 
+              width: 'max-content',
+              animation: `scrollBanner ${animationDuration}s linear infinite`,
+              animationPlayState: 'running'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.animationPlayState = 'paused'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.animationPlayState = 'running'
+            }}
           >
-            {tag}
-          </button>
-        ))}
+            {duplicatedTags.map((tag, index) => (
+              <button
+                key={`${tag.id}-${index}`}
+                onClick={() => onTagClick(tag.name)}
+                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-gray-600 rounded-full border border-gray-200/40 hover:bg-blue-50/60 hover:text-blue-600 hover:border-blue-200/60 transition-all duration-200 cursor-pointer whitespace-nowrap bg-white/60 backdrop-blur-sm shadow-sm"
+                style={tag.color ? { 
+                  borderColor: tag.color + '30', 
+                  backgroundColor: tag.color + '08' 
+                } : {}}
+              >
+                {tag.icon && (
+                  <span className="mr-1 text-xs" dangerouslySetInnerHTML={{ __html: tag.icon }} />
+                )}
+                {tag.name}
+                <span className="ml-1 text-xs opacity-50">({tag.count})</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* 刷新图标按钮 - 容器外部右侧 */}
       <button
-        onClick={onRefresh}
-        className="px-4 py-1.5 text-xs font-medium bg-gray-100/80 backdrop-blur-sm text-gray-600 rounded-full border border-white/20 hover:bg-gray-200/80 hover:text-gray-700 transition-colors duration-200 flex-shrink-0 cursor-pointer"
+        onClick={handleRefresh}
+        className="flex-shrink-0 p-2 bg-white/90 backdrop-blur-sm text-gray-500 rounded-full border border-gray-200/40 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-300/60 transition-all duration-200 cursor-pointer shadow-sm opacity-0 group-hover:opacity-100"
+        disabled={loading}
+        title="换一批"
       >
-        换一批
+        {loading ? (
+          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        )}
       </button>
+
+      <style jsx global>{`
+        @keyframes scrollBanner {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(calc(-100% / 3));
+          }
+        }
+      `}</style>
     </div>
   )
 } 
