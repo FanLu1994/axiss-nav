@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserFromToken } from '@/lib/utils'
+import { analyzeUrl, isAIServiceAvailable } from '@/lib/ai'
 
 // 获取链接 - 支持分页和搜索
 export async function GET(request: NextRequest) {
@@ -11,22 +12,23 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     
     // 构建搜索条件
-    const whereCondition: any = { isActive: true }
-    
-    if (search) {
-      whereCondition.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { url: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        {
-          tags: {
-            some: {
-              name: { contains: search, mode: 'insensitive' }
+    const whereCondition = search 
+      ? {
+          isActive: true,
+          OR: [
+            { title: { contains: search, mode: 'insensitive' as const } },
+            { url: { contains: search, mode: 'insensitive' as const } },
+            { description: { contains: search, mode: 'insensitive' as const } },
+            {
+              tags: {
+                some: {
+                  name: { contains: search, mode: 'insensitive' as const }
+                }
+              }
             }
-          }
+          ]
         }
-      ]
-    }
+      : { isActive: true }
 
     const skip = (page - 1) * pageSize
 
@@ -154,7 +156,6 @@ async function fetchWebsiteInfo(url: string): Promise<{ title: string; icon?: st
 
 // 新增链接 - 需要登录
 export async function POST(request: NextRequest) {
-  console.log("???????????????????")
   try {
     const authHeader = request.headers.get('authorization')
     console.log('收到的认证头:', authHeader) // 调试信息
@@ -183,37 +184,97 @@ export async function POST(request: NextRequest) {
     // 获取网站信息
     const websiteInfo = await fetchWebsiteInfo(url)
     
-    // 创建默认标签
-    const defaultTags = ['标签1', '标签2']
-    const tagConnections = []
+    let aiAnalysis = null
+    let title = websiteInfo.title
+    let description = '等待ai生成描述'
     
-    for (const tagName of defaultTags) {
-      const existingTag = await prisma.tag.findFirst({
-        where: {
-          name: tagName,
-          userId: user.userId
-        }
-      })
-      
-      if (existingTag) {
-        tagConnections.push({ id: existingTag.id })
-      } else {
-        // 创建新标签
-        const newTag = await prisma.tag.create({
-          data: {
+    // 尝试调用AI分析URL
+    if (isAIServiceAvailable()) {
+      try {
+        aiAnalysis = await analyzeUrl(url)
+        title = aiAnalysis.title || websiteInfo.title
+        description = aiAnalysis.description
+      } catch (error) {
+        console.error('AI分析失败，使用默认信息:', error)
+      }
+    }
+    
+    // 处理标签（去重）
+    const tagConnections = []
+    const tagNames = new Set<string>() // 用于去重
+    
+    if (aiAnalysis && aiAnalysis.tags && aiAnalysis.tags.length > 0) {
+      // 使用AI生成的标签
+      for (const tagInfo of aiAnalysis.tags) {
+        const tagName = tagInfo.name.trim()
+        const tagEmoji = tagInfo.emoji || '🏷️'
+        
+        if (!tagName || tagNames.has(tagName)) continue // 跳过空标签和重复标签
+        tagNames.add(tagName)
+        
+        // 查找或创建标签
+        let existingTag = await prisma.tag.findFirst({
+          where: {
             name: tagName,
             userId: user.userId
           }
         })
-        tagConnections.push({ id: newTag.id })
+        
+        if (existingTag) {
+          // 更新emoji如果不存在
+          if (!existingTag.icon && tagEmoji) {
+            existingTag = await prisma.tag.update({
+              where: { id: existingTag.id },
+              data: { icon: tagEmoji }
+            })
+          }
+          tagConnections.push({ id: existingTag.id })
+        } else {
+          // 创建新标签
+          const newTag = await prisma.tag.create({
+            data: {
+              name: tagName,
+              icon: tagEmoji,
+              userId: user.userId
+            }
+          })
+          tagConnections.push({ id: newTag.id })
+        }
+      }
+    } else {
+      // 使用默认标签（如果AI不可用）
+      const defaultTags = ['链接', '收藏']
+      for (const tagName of defaultTags) {
+        if (tagNames.has(tagName)) continue
+        tagNames.add(tagName)
+        
+        const existingTag = await prisma.tag.findFirst({
+          where: {
+            name: tagName,
+            userId: user.userId
+          }
+        })
+        
+        if (existingTag) {
+          tagConnections.push({ id: existingTag.id })
+        } else {
+          const newTag = await prisma.tag.create({
+            data: {
+              name: tagName,
+              icon: '🔗',
+              userId: user.userId
+            }
+          })
+          tagConnections.push({ id: newTag.id })
+        }
       }
     }
 
     const link = await prisma.link.create({
       data: {
-        title: websiteInfo.title,
+        title,
         url,
-        description: '等待ai生成描述',
+        description,
         icon: websiteInfo.icon || '',
         userId: user.userId,
         tags: {
