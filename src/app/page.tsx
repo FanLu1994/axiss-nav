@@ -22,6 +22,7 @@ export default function Home() {
   const [form, setForm] = useState({ url: "" })
   const [tagSeed, setTagSeed] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [addingLink, setAddingLink] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const router = useRouter()
@@ -133,12 +134,19 @@ export default function Home() {
       return
     }
     
-    if (!form.url) {
+    if (!form.url.trim()) {
       toast.error("网址不能为空")
       return
     }
     
+    // 简单的URL格式验证
+    if (!form.url.startsWith('http://') && !form.url.startsWith('https://')) {
+      toast.error("请输入完整的网址（需要包含 http:// 或 https://）")
+      return
+    }
+    
     const token = localStorage.getItem('token')
+    setAddingLink(true)
     
     try {
       const res = await fetch("/api/links", {
@@ -148,21 +156,34 @@ export default function Home() {
           "authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          url: form.url
+          url: form.url.trim()
         })
       })
       
+      const data = await res.json()
+      
       if (res.ok) {
-        toast.success("添加成功")
+        toast.success("添加成功！正在获取网站信息...")
         setForm({ url: "" })
         setOpen(false)
+        // 刷新数据
         fetchInitialLinks(search)
+      } else if (res.status === 409) {
+        // 处理URL重复的情况
+        toast.error(`该网址已存在：${data.existingLink?.title || data.existingLink?.url || ''}`)
+      } else if (res.status === 401) {
+        toast.error("登录已过期，请重新登录")
+        localStorage.removeItem('token')
+        setUser(null)
+        setOpen(false)
       } else {
-        const data = await res.json()
-        toast.error(data.error || "添加失败")
+        toast.error(data.error || "添加失败，请稍后重试")
       }
     } catch (error) {
-      toast.error("添加失败，请稍后重试")
+      console.error('添加链接失败:', error)
+      toast.error("网络错误，请检查网络连接后重试")
+    } finally {
+      setAddingLink(false)
     }
   }
 
@@ -293,11 +314,26 @@ export default function Home() {
                     placeholder="网址（https://...）"
                     value={form.url}
                     onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+                    disabled={addingLink}
                   />
                   <div className="text-sm text-gray-500">
                     只需输入网址，系统会自动获取标题和图标
                   </div>
-                  <Button className="w-full mt-2" onClick={handleAdd} size="lg">保存</Button>
+                  <Button 
+                    className="w-full mt-2" 
+                    onClick={handleAdd} 
+                    size="lg"
+                    disabled={addingLink}
+                  >
+                    {addingLink ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        添加中...
+                      </div>
+                    ) : (
+                      "保存"
+                    )}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -337,7 +373,6 @@ export default function Home() {
           />
         )}
       </div>
-      <Toaster />
     </main>
   )
 }

@@ -40,14 +40,27 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
     if (!description) return
     
     const rect = e.currentTarget.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+    const tooltipWidth = 280 // 预估tooltip宽度
+    
+    let x = rect.left + rect.width / 2
+    // 防止tooltip超出右边界
+    if (x + tooltipWidth / 2 > viewportWidth - 10) {
+      x = viewportWidth - tooltipWidth / 2 - 10
+    }
+    // 防止tooltip超出左边界
+    if (x - tooltipWidth / 2 < 10) {
+      x = tooltipWidth / 2 + 10
+    }
+    
     setTooltipPosition({
-      x: rect.left + rect.width / 2,
+      x: x,
       y: rect.top - 10
     })
     
     timeoutRef.current = setTimeout(() => {
       setShowTooltip(true)
-    }, 1000)
+    }, 800)
   }
 
   const handleMouseLeave = () => {
@@ -66,6 +79,9 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
     }
   }, [])
 
+  // 判断描述是否过长，需要显示tooltip
+  const isDescriptionLong = description && description.length > 60
+
   return (
     <>
       <a
@@ -73,7 +89,7 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center bg-white/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer border border-white/20 hover:border-blue-200/50 hover:scale-[1.02] min-w-0"
+        className="group flex items-center bg-white/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer border border-white/20 hover:border-blue-200/50 hover:scale-[1.02] min-w-0 w-full"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -86,12 +102,12 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
             onError={handleImageError}
           />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <h3 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate mb-1">
             {title}
           </h3>
           {description && (
-            <p className="text-xs text-gray-500 truncate group-hover:text-gray-600 mb-1">
+            <p className="text-xs text-gray-500 group-hover:text-gray-600 mb-1 truncate max-w-[200px]">
               {description}
             </p>
           )}
@@ -120,10 +136,10 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
         {children}
       </a>
       
-      {/* Tooltip */}
-      {showTooltip && description && (
+      {/* Tooltip - 只在描述过长时显示 */}
+      {showTooltip && description && isDescriptionLong && (
         <div
-          className="fixed z-50 bg-gray-900 text-white text-sm rounded-lg px-3 py-2 shadow-lg max-w-xs break-words pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          className="fixed z-50 bg-gray-800/95 backdrop-blur-sm text-white text-xs rounded-xl px-3 py-2 shadow-xl border border-gray-700/50 max-w-[280px] break-words pointer-events-none transform -translate-x-1/2 -translate-y-full leading-relaxed"
           style={{
             left: tooltipPosition.x,
             top: tooltipPosition.y,
@@ -132,7 +148,7 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
           <div className="relative">
             {description}
             {/* 箭头 */}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800/95"></div>
           </div>
         </div>
       )}

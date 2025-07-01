@@ -29,15 +29,12 @@ interface JWTPayload {
 // 生成JWT令牌
 export function generateToken(payload: JWTPayload): string {
   const secret = process.env.JWT_SECRET || 'fallback-secret';
-  console.log('生成令牌使用的secret:', secret); // 新增：打印生成时使用的secret
   return jwt.sign(payload, secret, { expiresIn: '7d' });
 }
 
 // 验证JWT令牌
 export function verifyToken(token: string): JWTPayload | null {
   const secret = process.env.JWT_SECRET || 'fallback-secret';
-  console.log('验证令牌使用的secret:', secret); // 你已有此行
-  console.log('尝试验证的token:', token); // 新增：打印收到的token
 
   try {
     return jwt.verify(token, secret) as JWTPayload;

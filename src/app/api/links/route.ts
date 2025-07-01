@@ -158,14 +158,12 @@ async function fetchWebsiteInfo(url: string): Promise<{ title: string; icon?: st
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
-    console.log('收到的认证头:', authHeader) // 调试信息
     
     if (!authHeader) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 })
     }
 
     const user = getUserFromToken(authHeader)
-    console.log('解析的用户信息:', user) // 调试信息
     
     if (!user) {
       return NextResponse.json({ error: '无效的认证令牌' }, { status: 401 })
@@ -179,6 +177,26 @@ export async function POST(request: NextRequest) {
     // 验证URL格式
     if (!isValidUrl(url)) {
       return NextResponse.json({ error: '请输入有效的网址（需要包含 http:// 或 https://）' }, { status: 400 })
+    }
+
+    // 检查URL是否已经存在
+    const existingLink = await prisma.link.findFirst({
+      where: {
+        url: url,
+        isActive: true,
+        userId: user.userId // 只检查当前用户的链接
+      }
+    })
+
+    if (existingLink) {
+      return NextResponse.json({ 
+        error: '该网址已经存在',
+        existingLink: {
+          id: existingLink.id,
+          title: existingLink.title,
+          url: existingLink.url
+        }
+      }, { status: 409 }) // 409 Conflict
     }
 
     // 获取网站信息
