@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserFromToken } from '@/lib/utils'
-import { analyzeUrl, isAIServiceAvailable } from '@/lib/ai'
+
 
 // 获取链接 - 支持分页和搜索
 export async function GET(request: NextRequest) {
@@ -85,74 +85,7 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-// 获取网页标题和icon
-async function fetchWebsiteInfo(url: string): Promise<{ title: string; icon?: string }> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      },
-      signal: AbortSignal.timeout(10000) // 10秒超时
-    })
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch website')
-    }
-    
-    const html = await response.text()
-    
-    // 提取标题
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-    let title = titleMatch ? titleMatch[1].trim() : new URL(url).hostname
-    
-    // 清理标题
-    title = title.replace(/\s+/g, ' ').substring(0, 100)
-    
-    // 提取icon (favicon)
-    let icon = ''
-    const iconMatches = [
-      html.match(/<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["']/i),
-      html.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["'](?:shortcut )?icon["']/i)
-    ]
-    
-    for (const match of iconMatches) {
-      if (match) {
-        let iconUrl = match[1]
-        if (iconUrl.startsWith('//')) {
-          iconUrl = new URL(url).protocol + iconUrl
-        } else if (iconUrl.startsWith('/')) {
-          iconUrl = new URL(url).origin + iconUrl
-        } else if (!iconUrl.startsWith('http')) {
-          iconUrl = new URL(iconUrl, url).href
-        }
-        icon = iconUrl
-        break
-      }
-    }
-    
-    // 如果没找到favicon，使用默认路径
-    if (!icon) {
-      try {
-        const faviconUrl = new URL('/favicon.ico', url).href
-        const faviconResponse = await fetch(faviconUrl, { 
-          method: 'HEAD',
-          signal: AbortSignal.timeout(5000)
-        })
-        if (faviconResponse.ok) {
-          icon = faviconUrl
-        }
-      } catch {
-        // 忽略favicon检查失败
-      }
-    }
-    
-    return { title, icon }
-  } catch (error) {
-    console.error('获取网站信息失败:', error)
-    // 返回基本信息
-    return { title: new URL(url).hostname }
-  }
-}
+
 
 // 新增链接 - 需要登录
 export async function POST(request: NextRequest) {
@@ -169,7 +102,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '无效的认证令牌' }, { status: 401 })
     }
 
-    const { url } = await request.json()
+    const { url, title, description, icon, tags } = await request.json()
+    
     if (!url) {
       return NextResponse.json({ error: '网址是必填项' }, { status: 400 })
     }
@@ -199,33 +133,15 @@ export async function POST(request: NextRequest) {
       }, { status: 409 }) // 409 Conflict
     }
 
-    // 获取网站信息
-    const websiteInfo = await fetchWebsiteInfo(url)
-    
-    let aiAnalysis = null
-    let title = websiteInfo.title
-    let description = '等待ai生成描述'
-    
-    // 尝试调用AI分析URL
-    if (isAIServiceAvailable()) {
-      try {
-        aiAnalysis = await analyzeUrl(url)
-        title = aiAnalysis.title || websiteInfo.title
-        description = aiAnalysis.description
-      } catch (error) {
-        console.error('AI分析失败，使用默认信息:', error)
-      }
-    }
-    
     // 处理标签（去重）
     const tagConnections = []
     const tagNames = new Set<string>() // 用于去重
     
-    if (aiAnalysis && aiAnalysis.tags && aiAnalysis.tags.length > 0) {
-      // 使用AI生成的标签
-      for (const tagInfo of aiAnalysis.tags) {
-        const tagName = tagInfo.name.trim()
-        const tagEmoji = tagInfo.emoji || '🏷️'
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      // 使用传入的标签
+      for (const tagInfo of tags) {
+        const tagName = (typeof tagInfo === 'string' ? tagInfo : tagInfo.name)?.trim()
+        const tagEmoji = (typeof tagInfo === 'object' ? tagInfo.emoji : null) || '🏷️'
         
         if (!tagName || tagNames.has(tagName)) continue // 跳过空标签和重复标签
         tagNames.add(tagName)
@@ -260,7 +176,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // 使用默认标签（如果AI不可用）
+      // 使用默认标签
       const defaultTags = ['链接', '收藏']
       for (const tagName of defaultTags) {
         if (tagNames.has(tagName)) continue
@@ -293,7 +209,7 @@ export async function POST(request: NextRequest) {
         title,
         url,
         description,
-        icon: websiteInfo.icon || '',
+        icon: icon || '',
         userId: user.userId,
         tags: {
           connect: tagConnections

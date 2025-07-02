@@ -14,9 +14,10 @@ interface LinkCardProps {
   updatedAt?: Date
   onTagClick?: (tag: string) => void
   children?: ReactNode
+  mode?: 'normal' | 'compact' | 'table'
 }
 
-export function LinkCard({ title, url, description, icon, tags, onTagClick, children }: LinkCardProps) {
+export function LinkCard({ title, url, description, icon, tags, onTagClick, children, mode = 'normal' }: LinkCardProps) {
   const [imageError, setImageError] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
@@ -82,6 +83,68 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
   // 判断描述是否过长，需要显示tooltip
   const isDescriptionLong = description && description.length > 60
 
+    if (mode === 'compact') {
+    return (
+      <a
+        ref={cardRef}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex flex-col items-center hover:scale-[1.05] transition-all duration-200 p-2 cursor-pointer w-full"
+        title={title}
+      >
+        <div className="flex-shrink-0 mb-2">
+          <img
+            src={imageError ? defaultImage : faviconUrl}
+            alt={title}
+            className="w-8 h-8 rounded group-hover:scale-110 transition-transform duration-200"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        </div>
+        <h3 className="text-xs font-medium text-gray-900 group-hover:text-blue-600 text-center line-clamp-2 leading-tight max-w-[120px]">
+          {title}
+        </h3>
+        {children}
+      </a>
+    )
+  }
+
+  if (mode === 'table') {
+    return (
+      <a
+        ref={cardRef}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex items-center hover:bg-gray-50/50 transition-all duration-200 py-1 px-4 cursor-pointer max-w-2xl mx-auto"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className="flex-shrink-0 mr-2">
+          <img
+            src={imageError ? defaultImage : faviconUrl}
+            alt={title}
+            className="w-3 h-3 rounded"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        </div>
+        <div className="flex-shrink-0 mr-2 min-w-0 w-32">
+          <h3 className="text-xs font-medium text-gray-900 group-hover:text-blue-600 truncate">
+            {title}
+          </h3>
+        </div>
+        <div className="flex-1 min-w-0 max-w-[300px]">
+          <p className="text-xs text-gray-500 group-hover:text-gray-600 truncate">
+            {description || '暂无描述'}
+          </p>
+        </div>
+        {children}
+      </a>
+    )
+  }
+
   return (
     <>
       <a
@@ -89,7 +152,7 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center bg-white/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer border border-white/20 hover:border-blue-200/50 hover:scale-[1.02] min-w-0 w-full"
+        className="group flex items-center bg-white/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer border border-white/20 hover:border-blue-200/50 hover:scale-[1.02] w-full"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -103,11 +166,11 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
           />
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
-          <h3 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate mb-1">
+          <h3 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate mb-1 max-w-[200px]">
             {title}
           </h3>
           {description && (
-            <p className="text-xs text-gray-500 group-hover:text-gray-600 mb-1 truncate max-w-[200px]">
+            <p className="text-xs text-gray-500 group-hover:text-gray-600 mb-1 truncate max-w-[150px]">
               {description}
             </p>
           )}
@@ -119,14 +182,14 @@ export function LinkCard({ title, url, description, icon, tags, onTagClick, chil
                   <button
                     key={index}
                     onClick={(e) => handleTagClick(e, tagName)}
-                    className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200"
+                    className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200 flex-shrink-0"
                   >
                     {tagName}
                   </button>
                 )
               })}
               {tags.length > 2 && (
-                <span className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">
+                <span className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full flex-shrink-0">
                   +{tags.length - 2}
                 </span>
               )}
