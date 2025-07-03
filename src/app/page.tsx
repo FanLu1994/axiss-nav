@@ -152,6 +152,35 @@ export default function Home() {
     router.push("/login")
   }
 
+  const handleDelete = async (linkId: string) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      toast.error("请先登录")
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/links?id=${linkId}`, {
+        method: "DELETE",
+        headers: {
+          "authorization": `Bearer ${token}`
+        }
+      })
+
+      if (res.ok) {
+        toast.success("删除成功！")
+        // 重新获取数据
+        fetchInitialLinks(search)
+      } else {
+        const data = await res.json()
+        toast.error(data.error || "删除失败")
+      }
+    } catch (error) {
+      console.error('删除失败:', error)
+      toast.error("网络错误，请稍后重试")
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center px-2 py-12 relative">
       <Particles />
@@ -327,6 +356,8 @@ export default function Home() {
                 key={link.id}
                 {...link}
                 onTagClick={handleTagClick}
+                onDelete={handleDelete}
+                isLoggedIn={!!user}
                 mode={viewMode}
               />
             )}

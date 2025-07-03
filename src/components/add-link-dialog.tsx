@@ -160,7 +160,7 @@ export function AddLinkDialog({ isOpen, onOpenChange, onSuccess, user }: AddLink
       <DialogContent className="max-w-lg w-full max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {step === 1 ? "添加网址 - 步骤 1/2" : "添加网址 - 步骤 2/2"}
+            添加收藏
           </DialogTitle>
         </DialogHeader>
 
@@ -196,7 +196,11 @@ export function AddLinkDialog({ isOpen, onOpenChange, onSuccess, user }: AddLink
               >
                 {analyzing ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                    </div>
                     AI分析中...
                   </div>
                 ) : (
@@ -304,7 +308,11 @@ export function AddLinkDialog({ isOpen, onOpenChange, onSuccess, user }: AddLink
               >
                 {saving ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                    </div>
                     保存中...
                   </div>
                 ) : (
