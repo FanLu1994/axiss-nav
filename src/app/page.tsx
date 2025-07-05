@@ -185,41 +185,9 @@ export default function Home() {
     <main className="min-h-screen bg-gray-50 flex flex-col items-center px-2 py-12 relative">
       <Particles />
       
-      {/* 右上角登录状态和视图切换 */}
+      {/* 右上角登录状态 */}
       <div className="absolute top-4 right-4 z-20 group">
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          {/* 视图模式切换 */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const modes: ('normal' | 'compact' | 'table')[] = ['normal', 'compact', 'table']
-              const currentIndex = modes.indexOf(viewMode)
-              const nextIndex = (currentIndex + 1) % modes.length
-              setViewMode(modes[nextIndex])
-            }}
-            className="bg-white/60 backdrop-blur-sm border-gray-200/50 text-gray-600 hover:bg-white/80 hover:text-gray-700"
-            title={
-              viewMode === 'normal' ? '切换到简约模式' : 
-              viewMode === 'compact' ? '切换到表格模式' : 
-              '切换到卡片模式'
-            }
-          >
-            {viewMode === 'normal' ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            ) : viewMode === 'compact' ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M3 10h18M3 16h18" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-              </svg>
-            )}
-          </Button>
-          
           {user ? (
             <>
               <span className="text-sm text-gray-500">欢迎，{user.username}</span>
@@ -245,15 +213,42 @@ export default function Home() {
         </div>
       </div>
 
+      {/* 右下角视图切换按钮 */}
+      <div className="fixed bottom-4 right-4 z-20">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const modes: ('normal' | 'compact' | 'table')[] = ['normal', 'compact', 'table']
+            const currentIndex = modes.indexOf(viewMode)
+            const nextIndex = (currentIndex + 1) % modes.length
+            setViewMode(modes[nextIndex])
+          }}
+          className="bg-white/60 backdrop-blur-sm border-gray-200/50 text-gray-600 hover:bg-white/80 hover:text-gray-700"
+          title={
+            viewMode === 'normal' ? '切换到简约模式' : 
+            viewMode === 'compact' ? '切换到表格模式' : 
+            '切换到卡片模式'
+          }
+        >
+          {viewMode === 'normal' ? (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          ) : viewMode === 'compact' ? (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M3 10h18M3 16h18" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+          )}
+        </Button>
+      </div>
+
       <div className="w-full max-w-2xl flex flex-col items-center mb-8 relative z-10">
-        {/* 随机标签 */}
-        <RandomTags
-          onTagClick={handleTagClick}
-          onRefresh={handleRefreshTags}
-          tagSeed={tagSeed}
-        />
-        
-        <div className="flex w-full max-w-md gap-3 mb-8">
+        <div className="flex w-full max-w-md gap-3 mb-4">
           <div className="relative flex-1">
             <Input
               placeholder="搜索网址..."
@@ -319,6 +314,13 @@ export default function Home() {
             </>
           )}
         </div>
+        
+        {/* 随机标签 */}
+        <RandomTags
+          onTagClick={handleTagClick}
+          onRefresh={handleRefreshTags}
+          tagSeed={tagSeed}
+        />
       </div>
       <div className="w-full max-w-7xl relative z-10">
         {loading ? (

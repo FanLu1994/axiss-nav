@@ -28,7 +28,7 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const cardRef = useRef<HTMLAnchorElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   
   const faviconUrl = icon || `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(url)}`
   const defaultImage = "/globe.svg" // 使用 public 目录中的默认图片
@@ -56,6 +56,26 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
 
   const handleImageError = () => {
     setImageError(true)
+  }
+
+  const handleCardClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    
+    try {
+      // 记录点击次数
+      await fetch('/api/links/click', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ linkId: id }),
+      })
+    } catch (error) {
+      console.error('记录点击次数失败:', error)
+    }
+    
+    // 跳转到目标链接
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const handleMouseEnter = (e: React.MouseEvent) => {
@@ -110,11 +130,9 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
     return (
       <>
         <div className="relative group">
-          <a
+          <div
             ref={cardRef}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={handleCardClick}
             className="flex flex-col items-center hover:scale-[1.05] transition-all duration-200 p-2 cursor-pointer w-full"
             title={title}
           >
@@ -131,7 +149,7 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
               {title}
             </h3>
             {children}
-          </a>
+          </div>
           {isLoggedIn && onDelete && (
             <button
               onClick={handleDelete}
@@ -175,11 +193,9 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
     return (
       <>
         <div className="relative group">
-          <a
+          <div
             ref={cardRef}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={handleCardClick}
             className="flex items-center hover:bg-gray-50/50 transition-all duration-200 py-1 px-4 cursor-pointer max-w-2xl mx-auto"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -204,7 +220,7 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
               </p>
             </div>
             {children}
-          </a>
+          </div>
           {isLoggedIn && onDelete && (
             <button
               onClick={handleDelete}
@@ -247,11 +263,9 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
   return (
     <>
       <div className="relative group">
-        <a
+        <div
           ref={cardRef}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
+          onClick={handleCardClick}
           className="flex items-center bg-white/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer border border-white/20 hover:border-blue-200/50 hover:scale-[1.02] w-full"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
@@ -297,7 +311,7 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
           )}
         </div>
         {children}
-        </a>
+        </div>
         {isLoggedIn && onDelete && (
           <button
             onClick={handleDelete}
