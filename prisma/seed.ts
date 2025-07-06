@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 import { getFaviconAsBase64 } from '../src/lib/utils'
 
 const prisma = new PrismaClient()
@@ -7,33 +6,25 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 开始种子数据...')
 
-  // 清理现有数据
+  // 检查是否存在管理员用户
+  const adminUser = await prisma.user.findFirst({
+    where: { role: 'ADMIN' }
+  })
+
+  if (!adminUser) {
+    console.log('❌ 未找到管理员用户！')
+    console.log('请先运行以下命令创建管理员账户：')
+    console.log('pnpm run init-admin')
+    console.log('或者：')
+    console.log('pnpm dlx tsx prisma/init-admin.ts')
+    return
+  }
+
+  console.log(`✅ 找到管理员用户: ${adminUser.username}`)
+
+  // 清理现有的链接和标签数据，但保留用户数据
   await prisma.link.deleteMany()
   await prisma.tag.deleteMany()
-  await prisma.user.deleteMany()
-
-  // 创建用户
-  const hashedPassword = await bcrypt.hash('123456', 12)
-  
-  const adminUser = await prisma.user.create({
-    data: {
-      username: 'admin',
-      email: 'admin@example.com',
-      password: hashedPassword,
-      role: 'ADMIN',
-    },
-  })
-
-  const normalUser = await prisma.user.create({
-    data: {
-      username: 'user',
-      email: 'user@example.com',
-      password: hashedPassword,
-      role: 'USER',
-    },
-  })
-
-  console.log('✅ 用户创建完成')
 
   // 为管理员用户创建标签
   const socialTag = await prisma.tag.create({
@@ -226,61 +217,8 @@ async function main() {
   }
 
   console.log('✅ 链接创建完成')
-
-  // 为普通用户创建一些基础标签和链接
-  const userPersonalTag = await prisma.tag.create({
-    data: {
-      name: '个人收藏',
-      description: '个人喜欢的网站',
-      icon: '⭐',
-      color: '#F97316',
-      order: 1,
-      userId: normalUser.id,
-    },
-  })
-
-  // 为普通用户创建链接（也获取真实favicon）
-  const userLinks = [
-    {
-      title: '百度',
-      url: 'https://www.baidu.com/',
-      description: '百度搜索',
-      order: 1,
-      userId: normalUser.id,
-      tagIds: [userPersonalTag.id],
-    },
-    {
-      title: '谷歌',
-      url: 'https://www.google.com/',
-      description: '谷歌搜索',
-      order: 2,
-      userId: normalUser.id,
-      tagIds: [userPersonalTag.id],
-    },
-  ]
-
-  for (const linkData of userLinks) {
-    const { tagIds, ...linkInfo } = linkData
-    
-    console.log(`正在获取 ${linkInfo.title} 的favicon...`)
-    const favicon = await getFaviconAsBase64(linkInfo.url)
-    
-    await prisma.link.create({
-      data: {
-        ...linkInfo,
-        icon: favicon,
-        tags: {
-          connect: tagIds.map((id: string) => ({ id })),
-        },
-      },
-    })
-    
-    await new Promise(resolve => setTimeout(resolve, 200))
-  }
-
-  console.log('✅ 普通用户数据创建完成')
   console.log('🎉 种子数据创建完成！')
-  console.log(`📊 创建了 ${await prisma.user.count()} 个用户`)
+  console.log(`📊 管理员用户: ${adminUser.username}`)
   console.log(`📊 创建了 ${await prisma.tag.count()} 个标签`)
   console.log(`📊 创建了 ${await prisma.link.count()} 个链接`)
 }

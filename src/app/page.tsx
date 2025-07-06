@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { LinkCard } from "@/components/link-card"
 import { AddLinkDialog } from "@/components/add-link-dialog"
 import { RandomTags } from "@/components/random-tags"
+import { RecommendedLinks } from "@/components/recommended-links"
 import { Particles } from "@/components/particles"
 
 import { InfiniteVirtualScroll } from "@/components/infinite-virtual-scroll"
@@ -14,14 +15,46 @@ import { useContainerHeight } from "@/components/use-container-height"
 import { useRouter } from "next/navigation"
 import {toast} from "sonner"
 
+// 用户类型
+interface User {
+  id: string
+  username: string
+  email: string
+  role: string
+}
+
+// 链接类型
+interface Link {
+  id: string
+  title: string
+  url: string
+  description?: string
+  icon?: string
+  order: number
+  isActive: boolean
+  clickCount: number
+  createdAt: string
+  updatedAt: string
+  tags: Array<{
+    id: string
+    name: string
+    icon?: string
+    color?: string
+  }>
+  user: {
+    id: string
+    username: string
+  }
+}
+
 export default function Home() {
   const [search, setSearch] = useState("")
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [links, setLinks] = useState<any[]>([])
+  const [links, setLinks] = useState<Link[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [tagSeed, setTagSeed] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [viewMode, setViewMode] = useState<'normal' | 'compact' | 'table'>('normal')
   const router = useRouter()
@@ -322,6 +355,12 @@ export default function Home() {
           tagSeed={tagSeed}
         />
       </div>
+      
+      {/* 推荐网站 */}
+      <div className="w-full max-w-7xl relative z-10">
+        <RecommendedLinks />
+      </div>
+      
       <div className="w-full max-w-7xl relative z-10">
         {loading ? (
           <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
@@ -353,10 +392,20 @@ export default function Home() {
             search={search}
             loading={loading}
             hideScrollbar={true}
-            renderItem={(link: any) => (
+            renderItem={(link: Link) => (
               <LinkCard
                 key={link.id}
-                {...link}
+                id={link.id}
+                title={link.title}
+                url={link.url}
+                description={link.description}
+                icon={link.icon}
+                order={link.order}
+                isActive={link.isActive}
+                clickCount={link.clickCount}
+                createdAt={new Date(link.createdAt)}
+                updatedAt={new Date(link.updatedAt)}
+                tags={link.tags.map(tag => tag.name)}
                 onTagClick={handleTagClick}
                 onDelete={handleDelete}
                 isLoggedIn={!!user}
