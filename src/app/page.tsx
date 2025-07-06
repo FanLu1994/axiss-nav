@@ -69,7 +69,7 @@ export default function Home() {
         const res = await fetch('/api/init/check')
         const data = await res.json()
         
-        if (data.needsInit) {
+        if (data.needsInitialization) {
           // 需要初始化，重定向到初始化页面
           router.push('/init')
           return

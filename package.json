@@ -9,6 +9,7 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:clean": "tsx prisma/clean.ts",
     "init-admin": "tsx prisma/init-admin.ts",
     "backup": "tsx prisma/backup.ts",
     "backup:export": "tsx prisma/backup.ts export",
