@@ -13,10 +13,8 @@ async function main() {
 
   if (!adminUser) {
     console.log('❌ 未找到管理员用户！')
-    console.log('请先运行以下命令创建管理员账户：')
-    console.log('pnpm run init-admin')
-    console.log('或者：')
-    console.log('pnpm dlx tsx prisma/init-admin.ts')
+    console.log('请先启动应用并访问网站创建管理员账户。')
+    console.log('首次访问时，系统会自动引导您创建管理员账户。')
     return
   }
 

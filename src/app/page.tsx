@@ -62,13 +62,36 @@ export default function Home() {
   const containerHeight = useContainerHeight(300)
   const pageSize = 20
 
-  // 检查用户登录状态
+  // 检查是否需要初始化
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      // 验证token有效性
-      fetchUserInfo(token)
+    const checkInitialization = async () => {
+      try {
+        const res = await fetch('/api/init/check')
+        const data = await res.json()
+        
+        if (data.needsInit) {
+          // 需要初始化，重定向到初始化页面
+          router.push('/init')
+          return
+        }
+        
+        // 不需要初始化，继续检查用户登录状态
+        const token = localStorage.getItem('token')
+        if (token) {
+          // 验证token有效性
+          fetchUserInfo(token)
+        }
+      } catch (error) {
+        console.error('检查初始化状态失败:', error)
+        // 如果检查失败，继续正常流程
+        const token = localStorage.getItem('token')
+        if (token) {
+          fetchUserInfo(token)
+        }
+      }
     }
+    
+    checkInitialization()
   }, [])
 
   const fetchUserInfo = async (token: string) => {
