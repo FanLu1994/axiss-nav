@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
-    "init-admin": "tsx prisma/init-admin.ts"
+    "init-admin": "tsx prisma/init-admin.ts",
+    "backup": "tsx prisma/backup.ts",
+    "backup:export": "tsx prisma/backup.ts export",
+    "backup:import": "tsx prisma/backup.ts import",
+    "backup:list": "tsx prisma/backup.ts list"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
