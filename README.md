@@ -95,12 +95,21 @@ pnpm dev
 
 #### 2. 一键部署
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav&env=DATABASE_URL,JWT_SECRET,OPENAI_API_KEY,DEEPSEEK_API_KEY,CLAUDE_API_KEY,GEMINI_API_KEY&envDescription=环境变量配置&envLink=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav%23环境变量)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav&env=DATABASE_URL,JWT_SECRET&envDescription=环境变量配置&envLink=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav%23环境变量)
 
 在环境变量页面填入：
+
+**必填：**
 - `DATABASE_URL`: 上面创建的数据库连接URL
 - `JWT_SECRET`: 随机字符串（如：`abc123xyz789`）
-- AI API密钥（可选）: 至少填一个或全部留空
+
+**可选（AI功能）：**
+- `OPENAI_API_KEY`: OpenAI API密钥
+- `DEEPSEEK_API_KEY`: DeepSeek API密钥  
+- `CLAUDE_API_KEY`: Claude API密钥
+- `GEMINI_API_KEY`: Gemini API密钥
+
+> 💡 **AI功能说明**：可以只填一个AI密钥，或者全部留空。不配置AI也能正常使用基础功能。
 
 #### 3. 初始化数据库
 
