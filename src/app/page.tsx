@@ -62,6 +62,14 @@ export default function Home() {
   const containerHeight = useContainerHeight(300)
   const pageSize = 20
 
+  // 初始化视图模式（从本地存储读取）
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('viewMode') as 'normal' | 'compact' | 'table' | null
+    if (savedViewMode && ['normal', 'compact', 'table'].includes(savedViewMode)) {
+      setViewMode(savedViewMode)
+    }
+  }, [])
+
   // 检查是否需要初始化
   useEffect(() => {
     const checkInitialization = async () => {
@@ -237,6 +245,28 @@ export default function Home() {
     }
   }
 
+  const handleViewModeChange = () => {
+    const modes: ('normal' | 'compact' | 'table')[] = ['normal', 'compact', 'table']
+    const modeNames = {
+      'normal': '卡片模式',
+      'compact': '简约模式', 
+      'table': '表格模式'
+    }
+    
+    const currentIndex = modes.indexOf(viewMode)
+    const nextIndex = (currentIndex + 1) % modes.length
+    const newMode = modes[nextIndex]
+    
+    setViewMode(newMode)
+    localStorage.setItem('viewMode', newMode)
+    
+    // 显示切换提示
+    toast.success(`已切换到${modeNames[newMode]}`, {
+      position: "bottom-right",
+      duration: 1500
+    })
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center px-2 py-12 relative">
       <Particles />
@@ -274,12 +304,7 @@ export default function Home() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            const modes: ('normal' | 'compact' | 'table')[] = ['normal', 'compact', 'table']
-            const currentIndex = modes.indexOf(viewMode)
-            const nextIndex = (currentIndex + 1) % modes.length
-            setViewMode(modes[nextIndex])
-          }}
+          onClick={handleViewModeChange}
           className="bg-white/60 backdrop-blur-sm border-gray-200/50 text-gray-600 hover:bg-white/80 hover:text-gray-700"
           title={
             viewMode === 'normal' ? '切换到简约模式' : 
