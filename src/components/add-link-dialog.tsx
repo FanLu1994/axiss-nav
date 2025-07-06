@@ -17,10 +17,9 @@ interface AddLinkDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
-  user: any
 }
 
-export function AddLinkDialog({ isOpen, onOpenChange, onSuccess, user }: AddLinkDialogProps) {
+export function AddLinkDialog({ isOpen, onOpenChange, onSuccess }: AddLinkDialogProps) {
   const [step, setStep] = useState<1 | 2>(1)
   const [url, setUrl] = useState("")
   const [analyzing, setAnalyzing] = useState(false)

@@ -108,7 +108,7 @@ export function RecommendedLinks() {
             <div className="flex flex-col items-center space-y-1">
               {link.icon ? (
                 <div className="w-5 h-5 flex items-center justify-center">
-                  {link.icon.startsWith('data:') ? (
+                  {link.icon.startsWith('data:') || link.icon.startsWith('http://') || link.icon.startsWith('https://') ? (
                     <img 
                       src={imageErrors.has(link.id) ? '/globe.svg' : link.icon} 
                       alt={link.title}

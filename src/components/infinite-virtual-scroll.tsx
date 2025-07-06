@@ -8,7 +8,6 @@ interface InfiniteVirtualScrollProps<T> {
   itemHeight: number
   containerHeight: number
   columns: number
-  pageSize: number
   loadMore: (page: number, search?: string) => Promise<{ data: T[], hasMore: boolean }>
   renderItem: (item: T, index: number) => React.ReactNode
   gap?: number
@@ -26,7 +25,6 @@ export function InfiniteVirtualScroll<T>({
   itemHeight,
   containerHeight,
   columns,
-  pageSize,
   loadMore,
   renderItem,
   gap = 16,

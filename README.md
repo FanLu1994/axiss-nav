@@ -95,9 +95,9 @@ pnpm dev
 
 #### 2. 一键部署
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav&env=DATABASE_URL,JWT_SECRET&envDescription=环境变量配置&envLink=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav%23环境变量)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav)
 
-在环境变量页面填入：
+部署时需要添加环境变量：
 
 **必填：**
 - `DATABASE_URL`: 上面创建的数据库连接URL
@@ -109,7 +109,7 @@ pnpm dev
 - `CLAUDE_API_KEY`: Claude API密钥
 - `GEMINI_API_KEY`: Gemini API密钥
 
-> 💡 **AI功能说明**：可以只填一个AI密钥，或者全部留空。不配置AI也能正常使用基础功能。
+> 💡 **添加环境变量**：在Vercel部署界面中点击 "Environment Variables" 添加，或部署完成后在项目 Settings > Environment Variables 中添加。AI功能可选，至少填一个或全部留空。
 
 #### 3. 初始化数据库
 

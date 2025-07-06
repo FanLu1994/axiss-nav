@@ -20,9 +20,10 @@ const defaultConfig: ResponsiveConfig = {
 
 export function useResponsiveColumns(config: Partial<ResponsiveConfig> = {}) {
   const [columns, setColumns] = useState(1)
-  const finalConfig = { ...defaultConfig, ...config }
 
   useEffect(() => {
+    const finalConfig = { ...defaultConfig, ...config }
+    
     const updateColumns = () => {
       const width = window.innerWidth
       
@@ -43,7 +44,7 @@ export function useResponsiveColumns(config: Partial<ResponsiveConfig> = {}) {
     
     window.addEventListener('resize', updateColumns)
     return () => window.removeEventListener('resize', updateColumns)
-  }, [finalConfig])
+  }, [config])
 
   return columns
 } 

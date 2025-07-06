@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, ChangeEvent, useEffect } from "react"
+import { useState, ChangeEvent, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { LinkCard } from "@/components/link-card"
@@ -113,7 +113,7 @@ export default function Home() {
   }
 
   // 加载初始数据
-  const fetchInitialLinks = async (searchQuery = "") => {
+  const fetchInitialLinks = useCallback(async (searchQuery = "") => {
     setLoading(true)
     try {
       const params = new URLSearchParams({
@@ -141,7 +141,7 @@ export default function Home() {
       setTotalCount(0)
     }
     setLoading(false)
-  }
+  }, [pageSize])
 
   // 加载更多数据
   const loadMoreLinks = async (page: number, searchQuery?: string) => {
@@ -365,7 +365,6 @@ export default function Home() {
                 isOpen={addDialogOpen}
                 onOpenChange={setAddDialogOpen}
                 onSuccess={handleAddSuccess}
-                user={user}
               />
             </>
           )}
@@ -408,7 +407,6 @@ export default function Home() {
               viewMode === 'table' ? 1 : 
               columns
             }
-            pageSize={pageSize}
             loadMore={loadMoreLinks}
             gap={viewMode === 'table' ? 0 : 6}
             className=" backdrop-blur-sm rounded-xl p-3"

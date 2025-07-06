@@ -41,7 +41,7 @@ export default function LoginPage() {
           position:"top-center"
         })
       }
-    } catch (error) {
+    } catch {
       toast.error("登录失败，请稍后重试",{
         position:"top-center"
       })

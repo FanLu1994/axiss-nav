@@ -21,25 +21,25 @@ export default function InitPage() {
 
   // 检查是否需要初始化
   useEffect(() => {
-    checkInitStatus()
-  }, [])
-
-  const checkInitStatus = async () => {
-    try {
-      const res = await fetch('/api/init/check')
-      const data = await res.json()
-      
-      if (!data.needsInitialization) {
-        // 已经有管理员了，重定向到主页
-        router.push('/')
-        return
+    const checkInitStatus = async () => {
+      try {
+        const res = await fetch('/api/init/check')
+        const data = await res.json()
+        
+        if (!data.needsInitialization) {
+          // 已经有管理员了，重定向到主页
+          router.push('/')
+          return
+        }
+      } catch (error) {
+        console.error('检查初始化状态失败:', error)
+      } finally {
+        setChecking(false)
       }
-    } catch (error) {
-      console.error('检查初始化状态失败:', error)
-    } finally {
-      setChecking(false)
     }
-  }
+    
+    checkInitStatus()
+  }, [router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
