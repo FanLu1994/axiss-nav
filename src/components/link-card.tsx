@@ -84,6 +84,7 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
     const rect = e.currentTarget.getBoundingClientRect()
     const viewportWidth = window.innerWidth
     const tooltipWidth = 280 // 预估tooltip宽度
+    const tooltipHeight = 60 // 预估tooltip高度
     
     let x = rect.left + rect.width / 2
     // 防止tooltip超出右边界
@@ -95,9 +96,17 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
       x = tooltipWidth / 2 + 10
     }
     
+    // 计算Y位置，考虑页面滚动
+    let y = rect.top + window.scrollY - tooltipHeight - 10
+    
+    // 如果tooltip会超出顶部，显示在卡片下方
+    if (rect.top < tooltipHeight + 20) {
+      y = rect.bottom + window.scrollY + 10
+    }
+    
     setTooltipPosition({
       x: x,
-      y: rect.top - 10
+      y: y
     })
     
     timeoutRef.current = setTimeout(() => {
@@ -214,7 +223,7 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
                 {title}
               </h3>
             </div>
-            <div className="flex-1 min-w-0 max-w-[300px]">
+            <div className="flex-1 min-w-0 max-w-[450px]">
               <p className="text-xs text-gray-500 group-hover:text-gray-600 truncate">
                 {description || '暂无描述'}
               </p>
@@ -289,24 +298,73 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
             </p>
           )}
           {tags && tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 relative">
-              {tags.slice(0, 2).map((tag: string | { name: string }, index) => {
-                const tagName = typeof tag === 'string' ? tag : tag.name
-                return (
+            <div className="flex items-center gap-1 overflow-hidden">
+              {(() => {
+                const firstTag = typeof tags[0] === 'string' ? tags[0] : (tags[0] as { name: string }).name
+                const firstTagLength = firstTag.length
+                
+                // 如果第一个标签很长（超过12个字符），直接显示一个带省略号的标签
+                if (firstTagLength > 12) {
+                  return (
+                    <button
+                      onClick={(e) => handleTagClick(e, firstTag)}
+                      className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200 flex-shrink-0 max-w-[100px] truncate"
+                      title={firstTag}
+                    >
+                      {firstTag}
+                    </button>
+                  )
+                }
+                
+                // 如果第一个标签不长，尝试显示多个标签
+                const elements = []
+                
+                // 先显示第一个标签
+                elements.push(
                   <button
-                    key={index}
-                    onClick={(e) => handleTagClick(e, tagName)}
+                    key={0}
+                    onClick={(e) => handleTagClick(e, firstTag)}
                     className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200 flex-shrink-0"
                   >
-                    {tagName}
+                    {firstTag}
                   </button>
                 )
-              })}
-              {tags.length > 2 && (
-                <span className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200 flex-shrink-0">
-                  +{tags.length - 2}
-                </span>
-              )}
+                
+                // 如果有更多标签，并且第一个标签不太长（小于8个字符），尝试显示第二个
+                if (tags.length > 1 && firstTagLength < 8) {
+                  const secondTag = typeof tags[1] === 'string' ? tags[1] : (tags[1] as { name: string }).name
+                  const secondTagLength = secondTag.length
+                  
+                  // 如果两个标签总长度合理，显示第二个
+                  if (firstTagLength + secondTagLength < 16) {
+                    elements.push(
+                      <button
+                        key={1}
+                        onClick={(e) => handleTagClick(e, secondTag)}
+                        className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors duration-200 flex-shrink-0"
+                      >
+                        {secondTag}
+                      </button>
+                    )
+                  }
+                }
+                
+                // 如果还有更多标签，显示 +N 指示器
+                const displayedCount = elements.length
+                if (tags.length > displayedCount) {
+                  elements.push(
+                    <span 
+                      key="more"
+                      className="px-1.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full flex-shrink-0"
+                      title={`还有 ${tags.length - displayedCount} 个标签`}
+                    >
+                      +{tags.length - displayedCount}
+                    </span>
+                  )
+                }
+                
+                return elements
+              })()}
             </div>
           )}
         </div>
@@ -326,7 +384,7 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
       {/* Tooltip - 只在描述过长时显示 */}
       {showTooltip && description && isDescriptionLong && (
         <div
-          className="fixed z-50 bg-gray-800/95 backdrop-blur-sm text-white text-xs rounded-xl px-3 py-2 shadow-xl border border-gray-700/50 max-w-[280px] break-words pointer-events-none transform -translate-x-1/2 -translate-y-full leading-relaxed"
+          className="fixed z-50 bg-gray-800/95 backdrop-blur-sm text-white text-xs rounded-xl px-3 py-2 shadow-xl border border-gray-700/50 max-w-[280px] break-words pointer-events-none transform -translate-x-1/2 leading-relaxed"
           style={{
             left: tooltipPosition.x,
             top: tooltipPosition.y,
@@ -334,8 +392,14 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
         >
           <div className="relative">
             {description}
-            {/* 箭头 */}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800/95"></div>
+            {/* 箭头 - 根据位置决定显示在上方还是下方 */}
+            {tooltipPosition.y > window.scrollY + 100 ? (
+              // 显示在卡片上方时，箭头在底部
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800/95"></div>
+            ) : (
+              // 显示在卡片下方时，箭头在顶部
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-800/95"></div>
+            )}
           </div>
         </div>
       )}
