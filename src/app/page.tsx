@@ -8,6 +8,7 @@ import { AddLinkDialog } from "@/components/add-link-dialog"
 import { RandomTags } from "@/components/random-tags"
 import { RecommendedLinks } from "@/components/recommended-links"
 import { Particles } from "@/components/particles"
+import { DarkModeToggle } from "@/components/dark-mode-toggle"
 
 import { InfiniteVirtualScroll } from "@/components/infinite-virtual-scroll"
 import { useResponsiveColumns } from "@/components/use-responsive-columns"
@@ -247,11 +248,6 @@ export default function Home() {
 
   const handleViewModeChange = () => {
     const modes: ('normal' | 'compact' | 'table')[] = ['normal', 'compact', 'table']
-    const modeNames = {
-      'normal': '卡片模式',
-      'compact': '简约模式', 
-      'table': '表格模式'
-    }
     
     const currentIndex = modes.indexOf(viewMode)
     const nextIndex = (currentIndex + 1) % modes.length
@@ -259,16 +255,11 @@ export default function Home() {
     
     setViewMode(newMode)
     localStorage.setItem('viewMode', newMode)
-    
-    // 显示切换提示
-    toast.success(`已切换到${modeNames[newMode]}`, {
-      position: "bottom-right",
-      duration: 1500
-    })
+
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center px-2 py-12 relative">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center px-2 py-12 relative transition-colors duration-200">
       <Particles />
       
       {/* 右上角登录状态 */}
@@ -276,12 +267,12 @@ export default function Home() {
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           {user ? (
             <>
-              <span className="text-sm text-gray-500">欢迎，{user.username}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">欢迎，{user.username}</span>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
-                className="bg-white/60 backdrop-blur-sm border-gray-200/50 text-gray-600 hover:bg-white/80 hover:text-gray-700"
+                className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-gray-200/50 dark:border-gray-600/50 text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200"
               >
                 退出
               </Button>
@@ -291,7 +282,7 @@ export default function Home() {
               onClick={handleLogin}
               size="sm"
               variant="ghost"
-              className="text-gray-400 hover:text-gray-600 hover:bg-white/30 backdrop-blur-sm border border-gray-200/30 hover:border-gray-300/50 transition-all duration-200"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/30 dark:hover:bg-gray-800/30 backdrop-blur-sm border border-gray-200/30 dark:border-gray-600/30 hover:border-gray-300/50 dark:hover:border-gray-500/50 transition-all duration-200"
             >
               登录
             </Button>
@@ -299,13 +290,14 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 右下角视图切换按钮 */}
-      <div className="fixed bottom-4 right-4 z-20">
+      {/* 右下角功能按钮 */}
+      <div className="fixed bottom-4 right-4 z-20 flex flex-col gap-2">
+        <DarkModeToggle />
         <Button
           variant="outline"
           size="sm"
           onClick={handleViewModeChange}
-          className="bg-white/60 backdrop-blur-sm border-gray-200/50 text-gray-600 hover:bg-white/80 hover:text-gray-700"
+          className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-gray-200/50 dark:border-gray-600/50 text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200"
           title={
             viewMode === 'normal' ? '切换到简约模式' : 
             viewMode === 'compact' ? '切换到表格模式' : 
@@ -337,7 +329,7 @@ export default function Home() {
               onChange={handleInputChange}
               onMouseEnter={() => setIsSearchFocused(true)}
               onMouseLeave={() => setIsSearchFocused(false)}
-              className="w-full bg-transparent !border-0 !border-b-2 !border-transparent focus:!ring-0 focus:!ring-offset-0 focus:outline-none !shadow-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus-visible:!shadow-none px-4 py-3 pr-10 text-gray-700 placeholder:text-gray-400 transition-all duration-300 !rounded-none"
+              className="w-full bg-transparent !border-0 !border-b-2 !border-transparent focus:!ring-0 focus:!ring-offset-0 focus:outline-none !shadow-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus-visible:!shadow-none px-4 py-3 pr-10 text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 !rounded-none"
             />
             {/* 虚线动画效果 */}
             <div className="absolute bottom-0 left-0 w-full h-px">
@@ -357,7 +349,7 @@ export default function Home() {
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 hover:bg-blue-50/50 rounded-full p-1.5 transition-all duration-200"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/50 rounded-full p-1.5 transition-all duration-200"
                 type="button"
               >
                 <svg
@@ -379,7 +371,7 @@ export default function Home() {
           {user && (
             <>
               <Button 
-                className="rounded-full w-10 h-10 p-0 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-700 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200/50 hover:border-gray-300/60 text-lg font-light cursor-pointer" 
+                className="rounded-full w-10 h-10 p-0 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200/50 dark:border-gray-600/50 hover:border-gray-300/60 dark:hover:border-gray-500/60 text-lg font-light cursor-pointer" 
                 size="sm"
                 variant="outline"
                 onClick={() => setAddDialogOpen(true)}
