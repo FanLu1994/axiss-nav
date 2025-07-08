@@ -23,6 +23,10 @@ model User {
   // 关联关系
   links     Link[]
   tags      Tag[]    // 仅用于Prisma关系校验
+
+  // 性能优化索引
+  @@index([role])
+  @@index([createdAt])
 }
 
 // 分类模型
@@ -44,6 +48,14 @@ model Tag {
 
   @@map("tags")
   @@unique([userId, name])
+  
+  // 性能优化索引
+  @@index([userId])
+  @@index([isActive])
+  @@index([name])
+  @@index([userId, isActive])
+  @@index([order])
+  @@index([createdAt])
 }
 
 // 链接模型
@@ -65,6 +77,18 @@ model Link {
   tags   Tag[]  @relation("LinkTags")
 
   @@map("links")
+  
+  // 性能优化索引
+  @@index([userId])
+  @@index([isActive])
+  @@index([userId, isActive])
+  @@index([order])
+  @@index([clickCount])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([userId, isActive, order])
+  @@index([title])
+  @@index([url])
 }
 
 // 用户角色枚举

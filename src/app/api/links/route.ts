@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserFromToken } from '@/lib/utils'
 
-
-// 获取链接 - 支持分页和搜索
+// 获取链接 - 支持分页和搜索 - 优化版本
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
-    const pageSize = parseInt(searchParams.get('pageSize') || '20')
-    const search = searchParams.get('search') || ''
+    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '20'), 100) // 限制最大页面大小
+    const search = searchParams.get('search')?.trim() || ''
     
-    // 构建搜索条件
+    // 优化的搜索条件
     const whereCondition = search 
       ? {
           isActive: true,
@@ -22,7 +21,8 @@ export async function GET(request: NextRequest) {
             {
               tags: {
                 some: {
-                  name: { contains: search, mode: 'insensitive' as const }
+                  name: { contains: search, mode: 'insensitive' as const },
+                  isActive: true
                 }
               }
             }
@@ -32,32 +32,46 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * pageSize
 
-    // 获取总数
-    const total = await prisma.link.count({ where: whereCondition })
-
-    // 获取分页数据
-    const links = await prisma.link.findMany({
-      where: whereCondition,
-      include: {
-        tags: {
-          select: {
-            id: true,
-            name: true,
-            icon: true,
-            color: true
+    // 使用Promise.all并行执行count和查询
+    const [total, links] = await Promise.all([
+      prisma.link.count({ where: whereCondition }),
+      prisma.link.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          title: true,
+          url: true,
+          description: true,
+          icon: true,
+          order: true,
+          isActive: true,
+          clickCount: true,
+          createdAt: true,
+          updatedAt: true,
+          tags: {
+            select: {
+              id: true,
+              name: true,
+              icon: true,
+              color: true
+            },
+            where: { isActive: true }
+          },
+          user: {
+            select: {
+              id: true,
+              username: true
+            }
           }
         },
-        user: {
-          select: {
-            id: true,
-            username: true
-          }
-        }
-      },
-      orderBy: { order: 'asc' },
-      skip,
-      take: pageSize
-    })
+        orderBy: [
+          { order: 'asc' },
+          { createdAt: 'desc' }
+        ],
+        skip,
+        take: pageSize
+      })
+    ])
     
     return NextResponse.json({
       data: links,
