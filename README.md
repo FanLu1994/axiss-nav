@@ -26,7 +26,7 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/你的用户名/axiss-nav.git
+git clone https://github.com/FanLu1994/axiss-nav.git
 cd axiss-nav
 ```
 
@@ -95,7 +95,7 @@ pnpm dev
 
 #### 2. 一键部署
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Faxiss-nav)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FFanLu1994%2Faxiss-nav)
 
 部署时需要添加环境变量：
 
