@@ -55,24 +55,22 @@ export function LinkCard({ id, title, url, description, icon, tags, onTagClick, 
     setImageError(true)
   }
 
-  const handleCardClick = async (e: React.MouseEvent) => {
+  const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault()
     
-    try {
-      // 记录点击次数
-      await fetch('/api/links/click', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ linkId: id }),
-      })
-    } catch (error) {
-      console.error('记录点击次数失败:', error)
-    }
-    
-    // 跳转到目标链接
+    // 立即跳转到目标链接，不等待接口响应
     window.open(url, '_blank', 'noopener,noreferrer')
+    
+    // 异步记录点击次数，不阻塞跳转
+    fetch('/api/links/click', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ linkId: id }),
+    }).catch(error => {
+      console.error('记录点击次数失败:', error)
+    })
   }
 
   // 渲染卡片内容的函数
