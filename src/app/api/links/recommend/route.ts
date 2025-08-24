@@ -14,14 +14,9 @@ export async function GET() {
         icon: true,
         clickCount: true,
         createdAt: true,
-        tags: {
-          select: {
-            id: true,
-            name: true,
-            icon: true,
-            color: true
-          }
-        }
+        tags: true,
+        category: true,
+        color: true
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -50,8 +45,12 @@ export async function GET() {
       
       const totalScore = clickScore + ageScore + randomScore
       
+      // 处理tags字段
+      const processedTags = link.tags ? JSON.parse(link.tags) : []
+      
       return {
         ...link,
+        tags: processedTags,
         score: totalScore
       }
     })
@@ -60,15 +59,7 @@ export async function GET() {
     const recommendedLinks = linksWithScore
       .sort((a, b) => b.score - a.score)
       .slice(0, 7)
-      .map(link => ({
-        id: link.id,
-        title: link.title,
-        url: link.url,
-        icon: link.icon,
-        clickCount: link.clickCount,
-        createdAt: link.createdAt,
-        tags: link.tags
-      })) // 移除分数字段
+      .map(({ score, ...link }) => link) // 移除score字段
 
     return NextResponse.json({
       data: recommendedLinks,

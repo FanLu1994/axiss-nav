@@ -20,75 +20,45 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // 关联关系
-  links     Link[]
-  tags      Tag[]    // 仅用于Prisma关系校验
-
   // 性能优化索引
   @@index([role])
   @@index([createdAt])
+  @@index([username])
+  @@index([email])
 }
 
-// 分类模型
-model Tag {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  icon        String?  @db.Text // 改为Text类型以存储较长的Base64字符串
-  color       String?
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // 关联关系
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  links  Link[] @relation("LinkTags")
-
-  @@map("tags")
-  @@unique([userId, name])
-  
-  // 性能优化索引
-  @@index([userId])
-  @@index([isActive])
-  @@index([name])
-  @@index([userId, isActive])
-  @@index([order])
-  @@index([createdAt])
-}
-
-// 链接模型
+// 链接模型 - 独立存在，不关联用户
 model Link {
   id          String   @id @default(cuid())
   title       String
   url         String
   description String?
-  icon        String?  @db.Text // 改为Text类型以存储较长的Base64字符串
+  icon        String?  @db.Text
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   clickCount  Int      @default(0)
+  
+  // 从Tag合并的字段
+  tags        String?  @db.Text // JSON格式存储标签数组
+  category    String?  // 分类名称
+  color       String?  // 分类颜色
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // 关联关系
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tags   Tag[]  @relation("LinkTags")
 
   @@map("links")
   
   // 性能优化索引
-  @@index([userId])
   @@index([isActive])
-  @@index([userId, isActive])
   @@index([order])
   @@index([clickCount])
   @@index([createdAt])
   @@index([updatedAt])
-  @@index([userId, isActive, order])
   @@index([title])
   @@index([url])
+  @@index([category])
+  @@index([isActive, order])
+  @@index([isActive, category])
 }
 
 // 用户角色枚举

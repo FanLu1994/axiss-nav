@@ -8,7 +8,7 @@ declare global {
 // 创建优化的Prisma客户端
 const createPrismaClient = () => {
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
@@ -24,21 +24,6 @@ if (process.env.NODE_ENV === 'development') {
   globalThis.prisma = prisma
 }
 
-// 监控查询性能
-if (process.env.NODE_ENV === 'development') {
-  prisma.$use(async (params, next) => {
-    const start = Date.now()
-    const result = await next(params)
-    const end = Date.now()
-    
-    // 如果查询时间超过1秒，记录慢查询
-    if (end - start > 1000) {
-      console.warn(`🐌 慢查询检测: ${params.model}.${params.action} 耗时 ${end - start}ms`)
-      console.warn('查询参数:', JSON.stringify(params.args, null, 2))
-    }
-    
-    return result
-  })
-}
 
-export { prisma } 
+
+export { prisma }

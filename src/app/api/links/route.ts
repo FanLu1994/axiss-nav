@@ -18,14 +18,8 @@ export async function GET(request: NextRequest) {
             { title: { contains: search, mode: 'insensitive' as const } },
             { url: { contains: search, mode: 'insensitive' as const } },
             { description: { contains: search, mode: 'insensitive' as const } },
-            {
-              tags: {
-                some: {
-                  name: { contains: search, mode: 'insensitive' as const },
-                  isActive: true
-                }
-              }
-            }
+            { category: { contains: search, mode: 'insensitive' as const } },
+            { tags: { contains: search, mode: 'insensitive' as const } }
           ]
         }
       : { isActive: true }
@@ -48,21 +42,9 @@ export async function GET(request: NextRequest) {
           clickCount: true,
           createdAt: true,
           updatedAt: true,
-          tags: {
-            select: {
-              id: true,
-              name: true,
-              icon: true,
-              color: true
-            },
-            where: { isActive: true }
-          },
-          user: {
-            select: {
-              id: true,
-              username: true
-            }
-          }
+          tags: true,
+          category: true,
+          color: true
         },
         orderBy: [
           { order: 'asc' },
@@ -73,8 +55,14 @@ export async function GET(request: NextRequest) {
       })
     ])
     
+    // 处理tags字段，将JSON字符串转换为数组
+    const processedLinks = links.map(link => ({
+      ...link,
+      tags: link.tags ? JSON.parse(link.tags) : []
+    }))
+    
     return NextResponse.json({
-      data: links,
+      data: processedLinks,
       pagination: {
         page,
         pageSize,
@@ -92,102 +80,47 @@ export async function GET(request: NextRequest) {
 // 验证URL格式
 function isValidUrl(url: string): boolean {
   try {
-    const urlObj = new URL(url)
-    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:'
+    new URL(url)
+    return true
   } catch {
     return false
   }
 }
 
-
-
 // 新增链接 - 需要登录
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader) {
-      return NextResponse.json({ error: '请先登录' }, { status: 401 })
-    }
-
     const user = getUserFromToken(authHeader)
-    
     if (!user) {
-      return NextResponse.json({ error: '无效的认证令牌' }, { status: 401 })
+      return NextResponse.json({ error: '未授权' }, { status: 401 })
     }
 
-    const { url, title, description, icon, tags } = await request.json()
-    
-    if (!url) {
-      return NextResponse.json({ error: '网址是必填项' }, { status: 400 })
+    const body = await request.json()
+    const { title, url, description, icon, tags, category, color } = body
+
+    // 验证必填字段
+    if (!title?.trim() || !url?.trim()) {
+      return NextResponse.json({ error: '标题和URL不能为空' }, { status: 400 })
     }
 
     // 验证URL格式
     if (!isValidUrl(url)) {
-      return NextResponse.json({ error: '请输入有效的网址（需要包含 http:// 或 https://）' }, { status: 400 })
+      return NextResponse.json({ error: 'URL格式不正确' }, { status: 400 })
     }
 
-    // 检查URL是否已经存在
-    const existingLink = await prisma.link.findFirst({
-      where: {
-        url: url,
-        isActive: true,
-        userId: user.userId // 只检查当前用户的链接
-      }
-    })
-
-    if (existingLink) {
-      return NextResponse.json({ 
-        error: '该网址已经存在',
-        existingLink: {
-          id: existingLink.id,
-          title: existingLink.title,
-          url: existingLink.url
-        }
-      }, { status: 409 }) // 409 Conflict
-    }
-
-    // 处理标签（去重）
-    const tagConnections = []
+    // 处理标签数据
     const tagNames = new Set<string>() // 用于去重
+    const processedTags = []
     
     if (tags && Array.isArray(tags) && tags.length > 0) {
       // 使用传入的标签
       for (const tagInfo of tags) {
         const tagName = (typeof tagInfo === 'string' ? tagInfo : tagInfo.name)?.trim()
-        const tagEmoji = (typeof tagInfo === 'object' ? tagInfo.emoji : null) || '🏷️'
         
         if (!tagName || tagNames.has(tagName)) continue // 跳过空标签和重复标签
         tagNames.add(tagName)
-        
-        // 查找或创建标签
-        let existingTag = await prisma.tag.findFirst({
-          where: {
-            name: tagName,
-            userId: user.userId
-          }
-        })
-        
-        if (existingTag) {
-          // 更新emoji如果不存在
-          if (!existingTag.icon && tagEmoji) {
-            existingTag = await prisma.tag.update({
-              where: { id: existingTag.id },
-              data: { icon: tagEmoji }
-            })
-          }
-          tagConnections.push({ id: existingTag.id })
-        } else {
-          // 创建新标签
-          const newTag = await prisma.tag.create({
-            data: {
-              name: tagName,
-              icon: tagEmoji,
-              userId: user.userId
-            }
-          })
-          tagConnections.push({ id: newTag.id })
-        }
+        processedTags.push(tagName)
       }
     } else {
       // 使用默认标签
@@ -195,26 +128,7 @@ export async function POST(request: NextRequest) {
       for (const tagName of defaultTags) {
         if (tagNames.has(tagName)) continue
         tagNames.add(tagName)
-        
-        const existingTag = await prisma.tag.findFirst({
-          where: {
-            name: tagName,
-            userId: user.userId
-          }
-        })
-        
-        if (existingTag) {
-          tagConnections.push({ id: existingTag.id })
-        } else {
-          const newTag = await prisma.tag.create({
-            data: {
-              name: tagName,
-              icon: '🔗',
-              userId: user.userId
-            }
-          })
-          tagConnections.push({ id: newTag.id })
-        }
+        processedTags.push(tagName)
       }
     }
 
@@ -224,24 +138,16 @@ export async function POST(request: NextRequest) {
         url,
         description,
         icon: icon || '',
-        userId: user.userId,
-        tags: {
-          connect: tagConnections
-        }
-      },
-      include: {
-        tags: {
-          select: {
-            id: true,
-            name: true,
-            icon: true,
-            color: true
-          }
-        }
+        tags: JSON.stringify(processedTags),
+        category: category || processedTags[0] || null,
+        color: color || null
       }
     })
     
-    return NextResponse.json(link)
+    return NextResponse.json({
+      ...link,
+      tags: processedTags
+    })
   } catch (error) {
     console.error('添加链接错误:', error)
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })
@@ -252,42 +158,34 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: '请先登录' }, { status: 401 })
-    }
-
     const user = getUserFromToken(authHeader)
     if (!user) {
-      return NextResponse.json({ error: '无效的认证令牌' }, { status: 401 })
+      return NextResponse.json({ error: '未授权' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const linkId = searchParams.get('id')
-    
+
     if (!linkId) {
-      return NextResponse.json({ error: '缺少链接ID' }, { status: 400 })
+      return NextResponse.json({ error: '链接ID不能为空' }, { status: 400 })
     }
 
-    // 检查链接是否存在且属于当前用户（或者是管理员）
+    // 查找链接
     const link = await prisma.link.findUnique({
-      where: { id: linkId },
-      include: { user: true }
+      where: { id: linkId }
     })
 
     if (!link) {
       return NextResponse.json({ error: '链接不存在' }, { status: 404 })
     }
 
-    // 只有链接的创建者或管理员可以删除
-    if (link.userId !== user.userId && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: '无权限删除此链接' }, { status: 403 })
-    }
-
-    await prisma.link.delete({
-      where: { id: linkId }
+    // 删除链接（软删除）
+    await prisma.link.update({
+      where: { id: linkId },
+      data: { isActive: false }
     })
-    
-    return NextResponse.json({ message: '删除成功' })
+
+    return NextResponse.json({ message: '链接已删除' })
   } catch (error) {
     console.error('删除链接错误:', error)
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })

@@ -4,6 +4,9 @@ import { useState, ChangeEvent, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { LinkCard } from "@/components/link-card"
+import { LinkCardSkeleton } from "@/components/link-card-skeleton"
+import { RecommendedLinksSkeleton } from "@/components/recommended-links-skeleton"
+import { RandomTagsSkeleton } from "@/components/random-tags-skeleton"
 import { AddLinkDialog } from "@/components/add-link-dialog"
 import { RandomTags } from "@/components/random-tags"
 import { RecommendedLinks } from "@/components/recommended-links"
@@ -21,7 +24,7 @@ interface User {
   role: string
 }
 
-// 链接类型
+// 链接类型 - 适配新的数据库结构
 interface Link {
   id: string
   title: string
@@ -33,16 +36,9 @@ interface Link {
   clickCount: number
   createdAt: string
   updatedAt: string
-  tags: Array<{
-    id: string
-    name: string
-    icon?: string
-    color?: string
-  }>
-  user: {
-    id: string
-    username: string
-  }
+  tags: string[] // 现在是字符串数组
+  category?: string
+  color?: string
 }
 
 export default function Home() {
@@ -452,15 +448,38 @@ export default function Home() {
           {user && (
             <>
               <Button 
-                className="rounded-full w-10 h-10 p-0 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200/50 dark:border-gray-600/50 hover:border-gray-300/60 dark:hover:border-gray-500/60 text-lg font-light cursor-pointer" 
+                className="group relative rounded-full w-10 h-10 p-0 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 hover:scale-105 active:scale-95 cursor-pointer overflow-hidden" 
                 size="sm"
-                variant="outline"
                 onClick={() => setAddDialogOpen(true)}
               >
-                +
+                {/* 背景光效 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                
+                {/* 加号图标 */}
+                <div className="relative z-10 flex items-center justify-center">
+                  <svg 
+                    className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2.5} 
+                      d="M12 4v16m8-8H4" 
+                    />
+                  </svg>
+                </div>
+                
+                {/* 工具提示 */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                  添加链接
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                </div>
               </Button>
               <AddLinkDialog
-                isOpen={addDialogOpen}
+                open={addDialogOpen}
                 onOpenChange={setAddDialogOpen}
                 onSuccess={handleAddSuccess}
               />
@@ -469,26 +488,36 @@ export default function Home() {
         </div>
         
         {/* 随机标签 */}
-        <RandomTags
-          onTagClick={handleTagClick}
-          onRefresh={() => {}}
-          tagSeed={0}
-        />
+        {userLoading ? (
+          <RandomTagsSkeleton />
+        ) : (
+          <RandomTags
+            onTagClick={handleTagClick}
+          />
+        )}
       </div>
       
       {/* 推荐网站 */}
       <div className="w-full max-w-7xl relative z-10">
-        <RecommendedLinks />
+        {userLoading ? (
+          <RecommendedLinksSkeleton />
+        ) : (
+          <RecommendedLinks />
+        )}
       </div>
       
       <div className="w-full max-w-7xl relative z-10">
         {userLoading ? (
-          <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
-            加载用户信息中...
+          <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <LinkCardSkeleton key={index} />
+            ))}
           </div>
         ) : loading ? (
-          <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
-            加载中...
+          <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <LinkCardSkeleton key={index} />
+            ))}
           </div>
         ) : links.length === 0 ? (
           <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
@@ -506,12 +535,7 @@ export default function Home() {
                      url={link.url}
                      description={link.description}
                      icon={link.icon}
-                     order={link.order}
-                     isActive={link.isActive}
-                     clickCount={link.clickCount}
-                     createdAt={new Date(link.createdAt)}
-                     updatedAt={new Date(link.updatedAt)}
-                     tags={link.tags.map(tag => tag.name)}
+                     tags={link.tags}
                      onTagClick={handleTagClick}
                      onDelete={handleDelete}
                      isLoggedIn={!!user}
@@ -521,8 +545,10 @@ export default function Home() {
               })}
             </div>
             {loadingMore && (
-              <div className="text-center text-gray-400 py-8 text-lg">
-                加载更多中...
+              <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center mt-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <LinkCardSkeleton key={`more-${index}`} />
+                ))}
               </div>
             )}
             {!hasMore && links.length > 0 && (

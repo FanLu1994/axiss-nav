@@ -111,8 +111,7 @@ export async function POST(request: NextRequest) {
     const existingLink = await prisma.link.findFirst({
       where: {
         url: url,
-        isActive: true,
-        userId: user.userId // 只检查当前用户的链接
+        isActive: true
       }
     })
 
