@@ -31,7 +31,7 @@ model User {
 model Link {
   id          String   @id @default(cuid())
   title       String
-  url         String
+  url         String   @unique
   description String?
   icon        String?  @db.Text
   order       Int      @default(0)
@@ -65,4 +65,4 @@ model Link {
 enum Role {
   ADMIN
   USER
-} 
+}

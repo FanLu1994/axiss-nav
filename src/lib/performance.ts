@@ -17,8 +17,8 @@ export class PerformanceMonitor {
     console.log(`[${this.requestId}] ⏱️ ${name}: ${elapsed.toFixed(2)}ms`)
   }
 
-  measure(name: string, fn: () => Promise<any> | any) {
-    return async (...args: any[]) => {
+  measure(name: string, fn: (...args: unknown[]) => Promise<unknown> | unknown) {
+    return async (...args: unknown[]) => {
       const start = performance.now()
       try {
         const result = await fn(...args)

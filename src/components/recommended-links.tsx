@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ExternalLink, Sparkles } from "lucide-react"
-import { toast } from "sonner"
+import { Sparkles } from "lucide-react"
 
 interface RecommendedLink {
   id: string

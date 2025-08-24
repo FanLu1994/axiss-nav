@@ -59,7 +59,7 @@ export async function GET() {
     const recommendedLinks = linksWithScore
       .sort((a, b) => b.score - a.score)
       .slice(0, 7)
-      .map(({ score, ...link }) => link) // 移除score字段
+      .map(({ score, ...link }) => link) // eslint-disable-line @typescript-eslint/no-unused-vars
 
     const response = NextResponse.json({
       data: recommendedLinks,

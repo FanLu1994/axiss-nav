@@ -95,7 +95,7 @@ function isValidUrl(url: string): boolean {
 // 新增链接 - 需要登录
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
+    const authHeader = request.headers.get('authorization') || undefined
     const user = getUserFromToken(authHeader)
     if (!user) {
       return NextResponse.json({ error: '未授权' }, { status: 401 })
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
 // 删除链接 - 需要登录
 export async function DELETE(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
+    const authHeader = request.headers.get('authorization') || undefined
     const user = getUserFromToken(authHeader)
     if (!user) {
       return NextResponse.json({ error: '未授权' }, { status: 401 })

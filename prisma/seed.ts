@@ -97,11 +97,23 @@ async function main() {
   ]
 
   for (const linkData of links) {
-    await prisma.link.upsert({
-      where: { url: linkData.url },
-      update: {},
-      create: linkData
+    // 检查链接是否已存在
+    const existingLink = await prisma.link.findUnique({
+      where: { url: linkData.url }
     })
+    
+    if (existingLink) {
+      // 如果存在，更新链接
+      await prisma.link.update({
+        where: { id: existingLink.id },
+        data: linkData
+      })
+    } else {
+      // 如果不存在，创建新链接
+      await prisma.link.create({
+        data: linkData
+      })
+    }
   }
 
   console.log('种子数据创建完成！')
