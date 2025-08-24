@@ -491,18 +491,28 @@ export default function Home() {
       </div>
       
       <div className="w-full max-w-7xl relative z-10">
-        {userLoading ? (
-          <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <LinkCardSkeleton key={index} />
-            ))}
-          </div>
-        ) : loading ? (
-          <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <LinkCardSkeleton key={index} />
-            ))}
-          </div>
+                 {userLoading ? (
+           <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
+             {Array.from({ length: 8 }).map((_, index) => (
+               <LinkCardSkeleton key={index} />
+             ))}
+             
+             {/* 填充组件，避免最后一行左边空白 */}
+             <div className="h-0 w-80 opacity-0"></div>
+             <div className="h-0 w-80 opacity-0"></div>
+             <div className="h-0 w-80 opacity-0"></div>
+           </div>
+         ) : loading ? (
+           <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
+             {Array.from({ length: 8 }).map((_, index) => (
+               <LinkCardSkeleton key={index} />
+             ))}
+             
+             {/* 填充组件，避免最后一行左边空白 */}
+             <div className="h-0 w-80 opacity-0"></div>
+             <div className="h-0 w-80 opacity-0"></div>
+             <div className="h-0 w-80 opacity-0"></div>
+           </div>
         ) : links.length === 0 ? (
           <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
             暂无收藏网址
@@ -527,14 +537,24 @@ export default function Home() {
                    />
                 )
               })}
+              
+              {/* 填充组件，避免最后一行左边空白 */}
+              <div className="h-0 w-80 opacity-0"></div>
+              <div className="h-0 w-80 opacity-0"></div>
+              <div className="h-0 w-80 opacity-0"></div>
             </div>
-            {loadingMore && (
-              <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center mt-4">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <LinkCardSkeleton key={`more-${index}`} />
-                ))}
-              </div>
-            )}
+                         {loadingMore && (
+               <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center mt-4">
+                 {Array.from({ length: 4 }).map((_, index) => (
+                   <LinkCardSkeleton key={`more-${index}`} />
+                 ))}
+                 
+                 {/* 填充组件，避免最后一行左边空白 */}
+                 <div className="h-0 w-80 opacity-0"></div>
+                 <div className="h-0 w-80 opacity-0"></div>
+                 <div className="h-0 w-80 opacity-0"></div>
+               </div>
+             )}
             {!hasMore && links.length > 0 && (
               <div className="text-center text-gray-400 py-8 text-lg">
                 已加载全部内容
