@@ -61,10 +61,15 @@ export async function GET() {
       .slice(0, 7)
       .map(({ score, ...link }) => link) // 移除score字段
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       data: recommendedLinks,
       message: '推荐链接获取成功'
     })
+    
+    // 添加缓存头，推荐数据可以缓存较长时间
+    response.headers.set('Cache-Control', 'public, max-age=600, s-maxage=1200')
+    
+    return response
   } catch (error) {
     console.error('获取推荐链接错误:', error)
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })

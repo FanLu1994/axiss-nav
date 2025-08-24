@@ -67,18 +67,28 @@ export async function GET(request: NextRequest) {
     
     // 如果标签数量不够，直接返回所有标签
     if (tags.length <= limit) {
-      return NextResponse.json({
-        data: tags
-      })
+          const response = NextResponse.json({
+      data: tags
+    })
+    
+    // 添加缓存头，标签数据变化不频繁
+    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=600')
+    
+    return response
     }
     
     // 随机选择指定数量的标签
     const shuffled = [...tags].sort(() => 0.5 - Math.random())
     const randomTags = shuffled.slice(0, limit)
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       data: randomTags
     })
+    
+    // 添加缓存头，标签数据变化不频繁
+    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=600')
+    
+    return response
   } catch (error) {
     console.error('获取随机标签错误:', error)
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })

@@ -58,64 +58,50 @@ export default function Home() {
   const [isReanalyzing, setIsReanalyzing] = useState(false)
   const router = useRouter()
 
-  // 检查是否需要初始化
+  // 检查是否需要初始化和用户登录状态 - 优化版本
   useEffect(() => {
-    const checkInitialization = async () => {
+    const initializeApp = async () => {
       try {
-        const res = await fetch('/api/init/check')
-        const data = await res.json()
+        // 并行执行初始化和用户信息获取
+        const token = localStorage.getItem('token')
         
-        if (data.needsInitialization) {
-          // 需要初始化，重定向到初始化页面
+        const [initCheck, userInfo] = await Promise.allSettled([
+          fetch('/api/init/check').then(res => res.json()),
+          token ? fetch("/api/auth/me", {
+            headers: { "authorization": `Bearer ${token}` }
+          }).then(res => res.ok ? res.json() : null) : Promise.resolve(null)
+        ])
+        
+        // 处理初始化检查结果
+        if (initCheck.status === 'fulfilled' && initCheck.value.needsInitialization) {
           router.push('/init')
           return
         }
         
-        // 不需要初始化，继续检查用户登录状态
-        const token = localStorage.getItem('token')
-        if (token) {
-          // 验证token有效性
-          await fetchUserInfo(token)
-        } else {
-          setUserLoading(false)
+        // 处理用户信息结果
+        if (userInfo.status === 'fulfilled' && userInfo.value) {
+          setUser(userInfo.value)
+          // 用户登录成功后，可以预加载一些数据
+          // 这里可以添加预加载逻辑
+        } else if (token) {
+          // 用户信息获取失败，清除无效token
+          localStorage.removeItem('token')
+          setUser(null)
         }
       } catch (error) {
-        console.error('检查初始化状态失败:', error)
-        // 如果检查失败，继续正常流程
-        const token = localStorage.getItem('token')
-        if (token) {
-          await fetchUserInfo(token)
-        } else {
-          setUserLoading(false)
-        }
+        console.error('应用初始化失败:', error)
+        // 清除可能无效的token
+        localStorage.removeItem('token')
+        setUser(null)
+      } finally {
+        setUserLoading(false)
       }
     }
     
-    checkInitialization()
+    initializeApp()
   }, [])
 
-  const fetchUserInfo = async (token: string) => {
-    try {
-      const res = await fetch("/api/auth/me", {
-        headers: { "authorization": `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const userData = await res.json()
-        console.log('用户信息获取成功:', userData)
-        setUser(userData)
-      } else {
-        console.log('用户信息获取失败，清除token')
-        localStorage.removeItem('token')
-        setUser(null)
-      }
-    } catch (error) {
-      console.log('用户信息获取异常:', error)
-      localStorage.removeItem('token')
-      setUser(null)
-    } finally {
-      setUserLoading(false)
-    }
-  }
+
 
   // 加载初始数据
   const fetchLinks = useCallback(async (searchQuery = "") => {
@@ -180,12 +166,10 @@ export default function Home() {
     setLoadingMore(false)
   }, [page, hasMore, loadingMore, search])
 
-  // 等待用户状态加载完成后再加载链接数据
+  // 立即开始加载链接数据，不等待用户状态
   useEffect(() => {
-    if (!userLoading) {
-      fetchLinks()
-    }
-  }, [userLoading, fetchLinks])
+    fetchLinks()
+  }, [fetchLinks])
 
   // 滚动监听
   useEffect(() => {
@@ -204,11 +188,11 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [loadMoreLinks])
 
-  // 当搜索条件改变时重新获取数据
+  // 当搜索条件改变时重新获取数据 - 优化防抖
   useEffect(() => {
     const delayedSearch = setTimeout(() => {
       fetchLinks(search)
-    }, 300) // 防抖处理
+    }, 200) // 减少防抖时间，提升响应速度
 
     return () => clearTimeout(delayedSearch)
   }, [search, fetchLinks])

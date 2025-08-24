@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       tags: link.tags ? JSON.parse(link.tags) : []
     }))
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       data: processedLinks,
       pagination: {
         page,
@@ -71,6 +71,11 @@ export async function GET(request: NextRequest) {
         hasMore: page < Math.ceil(total / pageSize)
       }
     })
+    
+    // 添加缓存头，提高性能
+    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=60')
+    
+    return response
   } catch (error) {
     console.error('获取链接错误:', error)
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })

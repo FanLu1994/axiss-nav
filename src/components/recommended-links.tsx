@@ -63,13 +63,7 @@ export function RecommendedLinks() {
   }
 
   if (loading) {
-    return (
-      <div className="w-full mb-8">
-        <div className="text-center text-gray-400 py-4">
-          加载推荐中...
-        </div>
-      </div>
-    )
+    return null // 直接返回null，让skeleton组件显示
   }
 
   if (links.length === 0) {
