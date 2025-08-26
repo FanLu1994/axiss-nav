@@ -1,11 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { matchTagEmoji, getRandomTagEmoji } from '@/lib/emoji-matcher'
+
+// 解析标签数据，支持字符串数组或对象数组格式
+function parseTagsFromDatabase(tagsString: string, useRandomEmoji: boolean = false): Array<{name: string; icon: string}> {
+  try {
+    const parsed = JSON.parse(tagsString)
+    if (Array.isArray(parsed)) {
+      return parsed.map(tag => {
+        if (typeof tag === 'string') {
+          // 旧格式：字符串数组
+          return {
+            name: tag,
+            icon: useRandomEmoji ? getRandomTagEmoji(tag) : matchTagEmoji(tag)
+          }
+        } else if (tag && typeof tag === 'object' && tag.name) {
+          // 新格式：对象数组，可能包含emoji字段
+          return {
+            name: tag.name,
+            icon: tag.emoji || tag.icon || (useRandomEmoji ? getRandomTagEmoji(tag.name) : matchTagEmoji(tag.name))
+          }
+        }
+        return null
+      }).filter(Boolean) as Array<{name: string; icon: string}>
+    }
+  } catch (error) {
+    console.error('解析标签JSON失败:', error)
+  }
+  return []
+}
 
 // 获取随机标签 - 从Link表中提取标签信息
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '6')
+    const limit = parseInt(searchParams.get('limit') || '7')
+    const randomEmoji = searchParams.get('randomEmoji') === 'true' // 是否使用随机emoji
     
     // 获取所有活跃的链接的标签信息
     const links = await prisma.link.findMany({
@@ -21,34 +51,30 @@ export async function GET(request: NextRequest) {
     })
     
     // 提取所有标签并统计使用频率
-    const tagCounts = new Map<string, { count: number; color?: string }>()
+    const tagCounts = new Map<string, { count: number; color?: string; icon: string }>()
     
     links.forEach(link => {
       if (link.tags) {
-        try {
-          const tags = JSON.parse(link.tags)
-          if (Array.isArray(tags)) {
-            tags.forEach(tagName => {
-              if (tagName && typeof tagName === 'string') {
-                const current = tagCounts.get(tagName) || { count: 0 }
-                tagCounts.set(tagName, {
-                  count: current.count + 1,
-                  color: link.color || current.color
-                })
-              }
+        const parsedTags = parseTagsFromDatabase(link.tags, randomEmoji)
+        parsedTags.forEach(tagInfo => {
+          if (tagInfo.name) {
+            const existingTag = tagCounts.get(tagInfo.name)
+            tagCounts.set(tagInfo.name, {
+              count: (existingTag?.count || 0) + 1,
+              color: link.color || existingTag?.color,
+              icon: randomEmoji ? getRandomTagEmoji(tagInfo.name) : (tagInfo.icon || existingTag?.icon || matchTagEmoji(tagInfo.name))
             })
           }
-        } catch (error) {
-          console.error('解析标签JSON失败:', error)
-        }
+        })
       }
       
       // 也统计category字段
       if (link.category) {
-        const current = tagCounts.get(link.category) || { count: 0 }
+        const existingCategory = tagCounts.get(link.category)
         tagCounts.set(link.category, {
-          count: current.count + 1,
-          color: link.color || current.color
+          count: (existingCategory?.count || 0) + 1,
+          color: link.color || existingCategory?.color,
+          icon: randomEmoji ? getRandomTagEmoji(link.category) : (existingCategory?.icon || matchTagEmoji(link.category))
         })
       }
     })
@@ -58,7 +84,7 @@ export async function GET(request: NextRequest) {
       id: name, // 使用标签名作为ID
       name,
       color: info.color,
-      icon: '🏷️', // 默认图标
+      icon: info.icon,
       count: info.count
     }))
     

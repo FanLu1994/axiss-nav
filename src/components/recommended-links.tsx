@@ -19,6 +19,7 @@ interface RecommendedLink {
 export function RecommendedLinks() {
   const [links, setLinks] = useState<RecommendedLink[]>([])
   const [loading, setLoading] = useState(true)
+  const [randomizing, setRandomizing] = useState(false)
 
   useEffect(() => {
     fetchRecommendedLinks()
@@ -58,6 +59,27 @@ export function RecommendedLinks() {
       console.error('记录点击失败:', error)
       // 即使记录失败也打开链接
       window.open(url, '_blank')
+    }
+  }
+
+  const handleRandomVisit = async () => {
+    try {
+      setRandomizing(true)
+      const response = await fetch('/api/links/random')
+      
+      if (response.ok) {
+        const data = await response.json()
+        const randomLink = data.data
+        
+        // 记录点击并打开随机链接
+        await handleLinkClick(randomLink.id, randomLink.url)
+      } else {
+        console.error('获取随机链接失败')
+      }
+    } catch (error) {
+      console.error('随机访问错误:', error)
+    } finally {
+      setRandomizing(false)
     }
   }
 
@@ -121,6 +143,24 @@ export function RecommendedLinks() {
             </div>
           </div>
         ))}
+        {/* 随机访问按钮 */}
+        <div
+          className="group cursor-pointer hover:scale-105 transition-all duration-200 flex flex-col items-center justify-center text-center border border-dashed border-gray-300 rounded-lg p-2 hover:border-blue-300"
+          onClick={handleRandomVisit}
+        >
+          <div className="flex flex-col items-center space-y-1">
+            <div className="w-5 h-5 flex items-center justify-center">
+              {randomizing ? (
+                <span className="text-sm animate-spin">🎯</span>
+              ) : (
+                <span className="text-sm">❓</span>
+              )}
+            </div>
+            <div className="text-xs text-gray-600 leading-tight line-clamp-1 group-hover:text-gray-800 transition-colors max-w-[60px]">
+              随便看看
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
