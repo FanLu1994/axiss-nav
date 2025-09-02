@@ -12,6 +12,7 @@ import { RandomTags } from "@/components/random-tags"
 import { RecommendedLinks } from "@/components/recommended-links"
 import { Particles } from "@/components/particles"
 import { DarkModeToggle } from "@/components/dark-mode-toggle"
+import { useClipboardDetector } from "@/components/use-clipboard-detector"
 
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -56,7 +57,23 @@ export default function Home() {
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
   const [contextMenuLinkId, setContextMenuLinkId] = useState<string | null>(null)
   const [isReanalyzing, setIsReanalyzing] = useState(false)
+  const [clipboardDialogOpen, setClipboardDialogOpen] = useState(false)
+  const [detectedUrl, setDetectedUrl] = useState("")
   const router = useRouter()
+
+  // 剪贴板检测hook
+  const { manualDetect, clearDetection } = useClipboardDetector({
+    autoDetect: true, // 启用自动检测
+    showToast: false, // 不显示toast，使用自定义对话框
+    minUrlLength: 10,
+    excludedDomains: ['localhost', '127.0.0.1', 'example.com'],
+    enableVisibilityDetection: true, // 启用页面可见性检测
+    onUrlDetected: (url) => {
+      console.log('🎯 页面检测到URL:', url)
+      setDetectedUrl(url)
+      setClipboardDialogOpen(true)
+    }
+  })
 
   // 检查是否需要初始化和用户登录状态 - 优化版本
   useEffect(() => {
@@ -171,6 +188,38 @@ export default function Home() {
     fetchLinks()
   }, [fetchLinks])
 
+  // 页面焦点时检测剪贴板（简化版本，主要依赖hook的可见性检测）
+  useEffect(() => {
+    console.log('🎧 页面开始监听用户交互事件')
+    let hasInteracted = false
+
+    const handleUserInteraction = () => {
+      console.log('👆 用户交互事件触发')
+      hasInteracted = true
+      // 用户首次交互时检测一次剪贴板
+      setTimeout(() => {
+        if (document.hasFocus()) {
+          console.log('✅ 用户交互后页面获得焦点，开始检测剪贴板')
+          manualDetect()
+        } else {
+          console.log('❌ 用户交互后页面未获得焦点，跳过检测')
+        }
+      }, 100)
+    }
+
+    // 监听用户交互事件（点击、键盘输入等）
+    document.addEventListener('click', handleUserInteraction, { once: true })
+    document.addEventListener('keydown', handleUserInteraction, { once: true })
+    document.addEventListener('mousedown', handleUserInteraction, { once: true })
+
+    return () => {
+      console.log('🧹 清理页面交互监听事件')
+      document.removeEventListener('click', handleUserInteraction)
+      document.removeEventListener('keydown', handleUserInteraction)
+      document.removeEventListener('mousedown', handleUserInteraction)
+    }
+  }, [manualDetect])
+
   // 滚动监听
   useEffect(() => {
     const handleScroll = () => {
@@ -199,6 +248,20 @@ export default function Home() {
 
   const handleAddSuccess = () => {
     fetchLinks(search)
+  }
+
+  // 处理剪贴板检测到的URL
+  const handleClipboardUrlDetected = (url: string) => {
+    console.log('🎯 处理剪贴板检测到的URL:', url)
+    setDetectedUrl(url)
+    setClipboardDialogOpen(true)
+  }
+
+  // 处理剪贴板对话框关闭
+  const handleClipboardDialogClose = () => {
+    console.log('🔒 关闭剪贴板对话框')
+    setClipboardDialogOpen(false)
+    clearDetection()
   }
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -466,6 +529,17 @@ export default function Home() {
                 open={addDialogOpen}
                 onOpenChange={setAddDialogOpen}
                 onSuccess={handleAddSuccess}
+              />
+              
+              {/* 剪贴板检测对话框 */}
+              <AddLinkDialog
+                open={clipboardDialogOpen}
+                onOpenChange={setClipboardDialogOpen}
+                initialUrl={detectedUrl}
+                onSuccess={() => {
+                  handleClipboardDialogClose()
+                  handleAddSuccess()
+                }}
               />
             </>
           )}

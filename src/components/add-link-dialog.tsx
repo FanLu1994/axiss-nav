@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ interface AddLinkDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  initialUrl?: string // 预设的URL
 }
 
 interface AnalysisResult {
@@ -22,12 +23,27 @@ interface AnalysisResult {
   tags: Array<{ name: string; emoji?: string }>
 }
 
-export function AddLinkDialog({ open, onOpenChange, onSuccess }: AddLinkDialogProps) {
+export function AddLinkDialog({ open, onOpenChange, onSuccess, initialUrl }: AddLinkDialogProps) {
   const [url, setUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [step, setStep] = useState<'input' | 'analyzing' | 'confirm'>('input')
+
+  // 当对话框打开且有预设URL时，只预填充URL，不自动分析
+  useEffect(() => {
+    if (open && initialUrl) {
+      setUrl(initialUrl)
+      // 不自动开始分析，让用户自己决定
+    } else if (!open) {
+      // 对话框关闭时重置状态
+      setUrl("")
+      setAnalysisResult(null)
+      setStep('input')
+    }
+  }, [open, initialUrl])
+
+
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
