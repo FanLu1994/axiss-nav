@@ -14,7 +14,11 @@
     "backup": "tsx prisma/backup.ts",
     "backup:export": "tsx prisma/backup.ts export",
     "backup:import": "tsx prisma/backup.ts import",
-    "backup:list": "tsx prisma/backup.ts list"
+    "backup:list": "tsx prisma/backup.ts list",
+    "export:links": "node scripts/export-links.js",
+    "import:links": "node scripts/import-links.js",
+    "auto-backup": "node scripts/auto-backup.js",
+    "simple-backup": "node scripts/simple-backup.js"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
@@ -22,6 +26,7 @@
     "@radix-ui/react-dropdown-menu": "^2.1.15",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@types/bcryptjs": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.10",

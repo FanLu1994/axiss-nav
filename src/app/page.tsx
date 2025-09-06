@@ -191,11 +191,9 @@ export default function Home() {
   // 页面焦点时检测剪贴板（简化版本，主要依赖hook的可见性检测）
   useEffect(() => {
     console.log('🎧 页面开始监听用户交互事件')
-    let hasInteracted = false
 
     const handleUserInteraction = () => {
       console.log('👆 用户交互事件触发')
-      hasInteracted = true
       // 用户首次交互时检测一次剪贴板
       setTimeout(() => {
         if (document.hasFocus()) {
@@ -248,13 +246,6 @@ export default function Home() {
 
   const handleAddSuccess = () => {
     fetchLinks(search)
-  }
-
-  // 处理剪贴板检测到的URL
-  const handleClipboardUrlDetected = (url: string) => {
-    console.log('🎯 处理剪贴板检测到的URL:', url)
-    setDetectedUrl(url)
-    setClipboardDialogOpen(true)
   }
 
   // 处理剪贴板对话框关闭

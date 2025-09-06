@@ -12,7 +12,6 @@ import { AddLinkDialog } from './add-link-dialog'
 
 export function ClipboardDetectorDemo() {
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const [detectedUrl, setDetectedUrl] = useState('')
   const [autoDetect, setAutoDetect] = useState(true)
   const [showToast, setShowToast] = useState(true)
 
@@ -27,8 +26,7 @@ export function ClipboardDetectorDemo() {
     showToast,
     minUrlLength: 10,
     excludedDomains: ['localhost', '127.0.0.1', 'example.com'],
-    onUrlDetected: (url) => {
-      setDetectedUrl(url)
+    onUrlDetected: () => {
       setShowAddDialog(true)
     }
   })
