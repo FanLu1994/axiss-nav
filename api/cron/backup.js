@@ -10,7 +10,7 @@ const prisma = new PrismaClient()
 const config = {
   githubRepo: process.env.GITHUB_BACKUP_REPO,
   githubToken: process.env.GITHUB_TOKEN,
-  backupDir: './backups',
+  backupDir: '/tmp/backups',
   branch: process.env.BACKUP_BRANCH || 'backup'
 }
 
