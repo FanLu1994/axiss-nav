@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { execSync } from 'child_process'
 import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
 import path from 'path'
@@ -14,7 +13,7 @@ const config = {
   branch: process.env.BACKUP_BRANCH || 'backup'
 }
 
-export async function GET(request) {
+export async function GET() {
   try {
     console.log('开始定时备份任务...')
     console.log(`时间: ${new Date().toLocaleString('zh-CN')}`)
@@ -133,45 +132,126 @@ async function syncToGitHub(mdFile, dateStr, totalLinks) {
   try {
     console.log('开始同步到GitHub...')
 
-    // Fine-grained Token 格式
-    const repoUrl = `https://x-access-token:${config.githubToken}@github.com/${config.githubRepo}.git`
-    const tempDir = path.join(process.cwd(), 'temp-repo')
+    const [owner, repo] = config.githubRepo.split('/')
+    const fileName = `bookmarks-${dateStr}.md`
+    const fileContent = fs.readFileSync(mdFile, 'utf8')
 
-    // 清理临时目录
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true })
+    // 使用 GitHub REST API 上传文件
+    const uploadFile = async (path, content, message) => {
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${config.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          content: Buffer.from(content, 'utf8').toString('base64'),
+          branch: config.branch
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(`GitHub API 错误: ${response.status} - ${errorData.message || response.statusText}`)
+      }
+
+      return response.json()
     }
 
-    // 克隆仓库
-    console.log('克隆GitHub仓库...')
-    execSync(`git clone -b ${config.branch} ${repoUrl} ${tempDir}`, { 
-      stdio: 'pipe',
-      cwd: process.cwd(),
-      shell: true
+    // 检查分支是否存在，如果不存在则创建
+    try {
+      await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${config.branch}`, {
+        headers: {
+          'Authorization': `Bearer ${config.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+        }
+      })
+    } catch {
+      // 分支不存在，需要创建
+      console.log(`创建分支 ${config.branch}...`)
+      
+      // 获取主分支的 SHA
+      const mainBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/main`, {
+        headers: {
+          'Authorization': `Bearer ${config.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+        }
+      })
+      
+      if (!mainBranchResponse.ok) {
+        // 尝试 master 分支
+        const masterBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/master`, {
+          headers: {
+            'Authorization': `Bearer ${config.githubToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+          }
+        })
+        
+        if (!masterBranchResponse.ok) {
+          throw new Error('无法找到主分支 (main 或 master)')
+        }
+        
+        const masterData = await masterBranchResponse.json()
+        const masterSha = masterData.commit.sha
+        
+        // 创建新分支
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.githubToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ref: `refs/heads/${config.branch}`,
+            sha: masterSha
+          })
+        })
+      } else {
+        const mainData = await mainBranchResponse.json()
+        const mainSha = mainData.commit.sha
+        
+        // 创建新分支
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.githubToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ref: `refs/heads/${config.branch}`,
+            sha: mainSha
+          })
+        })
+      }
+    }
+
+    // 上传备份文件
+    console.log(`上传文件: ${fileName}`)
+    await uploadFile(fileName, fileContent, `自动备份: ${dateStr}`)
+
+    // 获取现有文件列表来更新 README
+    const filesResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents?ref=${config.branch}`, {
+      headers: {
+        'Authorization': `Bearer ${config.githubToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+      }
     })
 
-    // 如果分支不存在，创建新分支
-    try {
-      execSync(`git checkout -b ${config.branch}`, { 
-        stdio: 'pipe',
-        cwd: tempDir,
-        shell: true
-      })
-    } catch (error) {
-      // 分支已存在，切换到该分支
-      execSync(`git checkout ${config.branch}`, { 
-        stdio: 'pipe',
-        cwd: tempDir,
-        shell: true
-      })
+    let existingFiles = []
+    if (filesResponse.ok) {
+      const files = await filesResponse.json()
+      existingFiles = files
+        .filter(file => file.name.startsWith('bookmarks-') && file.name.endsWith('.md'))
+        .map(file => file.name)
+        .sort()
+        .reverse()
     }
 
-    // 复制备份文件
-    const destMdFile = path.join(tempDir, `bookmarks-${dateStr}.md`)
-    
-    fs.copyFileSync(mdFile, destMdFile)
-
-    // 创建README文件
+    // 创建或更新 README 文件
     const readmeContent = `# 书签自动备份
 
 这是由 Axiss Nav 自动生成的书签备份仓库。
@@ -189,25 +269,13 @@ async function syncToGitHub(mdFile, dateStr, totalLinks) {
 
 ## 文件列表
 
-${fs.readdirSync(tempDir)
-  .filter(file => file.startsWith('bookmarks-') && file.endsWith('.md'))
-  .sort()
-  .reverse()
-  .map(file => `- [${file}](./${file})`)
-  .join('\n')}
+${existingFiles.map(file => `- [${file}](./${file})`).join('\n')}
 `
 
-    fs.writeFileSync(path.join(tempDir, 'README.md'), readmeContent, 'utf8')
-
-    // 提交更改
-    execSync('git add .', { cwd: tempDir, shell: true })
-    execSync(`git commit -m "自动备份: ${dateStr}"`, { cwd: tempDir, shell: true })
-    execSync(`git push origin ${config.branch}`, { cwd: tempDir, shell: true })
+    console.log('更新 README 文件...')
+    await uploadFile('README.md', readmeContent, `更新 README: ${dateStr}`)
 
     console.log('GitHub同步完成!')
-
-    // 清理临时目录
-    fs.rmSync(tempDir, { recursive: true, force: true })
 
   } catch (error) {
     console.error('GitHub同步失败:', error.message)
