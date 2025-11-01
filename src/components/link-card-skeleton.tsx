@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function LinkCardSkeleton() {
   return (
-    <Card className="w-80 h-40">
+    <Card className="w-full min-h-[9.5rem]">
       <CardContent className="p-4 h-full">
         <div className="flex items-start justify-between h-full">
           <div className="flex items-start gap-3 flex-1 min-w-0">

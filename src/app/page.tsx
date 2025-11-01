@@ -61,6 +61,25 @@ export default function Home() {
   const [detectedUrl, setDetectedUrl] = useState("")
   const router = useRouter()
 
+  // URL检测回调函数，检查URL是否已存在
+  const handleUrlDetected = useCallback((url: string) => {
+    console.log('🎯 页面检测到URL:', url)
+    // 检查该URL是否已经存在于链接列表中
+    const normalizedUrl = url.trim().toLowerCase()
+    const urlExists = links.some(link => {
+      const linkUrl = link.url.trim().toLowerCase()
+      return linkUrl === normalizedUrl
+    })
+    
+    if (urlExists) {
+      console.log('⚠️ URL已存在于链接列表中，跳过弹出对话框')
+      return
+    }
+    
+    setDetectedUrl(url)
+    setClipboardDialogOpen(true)
+  }, [links])
+
   // 剪贴板检测hook
   const { manualDetect, clearDetection } = useClipboardDetector({
     autoDetect: true, // 启用自动检测
@@ -68,11 +87,7 @@ export default function Home() {
     minUrlLength: 10,
     excludedDomains: ['localhost', '127.0.0.1', 'example.com'],
     enableVisibilityDetection: true, // 启用页面可见性检测
-    onUrlDetected: (url) => {
-      console.log('🎯 页面检测到URL:', url)
-      setDetectedUrl(url)
-      setClipboardDialogOpen(true)
-    }
+    onUrlDetected: handleUrlDetected
   })
 
   // 检查是否需要初始化和用户登录状态 - 优化版本
@@ -307,16 +322,27 @@ export default function Home() {
     e.preventDefault()
     e.stopPropagation()
 
-    // 如果菜单已经显示，只更新位置和链接ID
-    if (showContextMenu) {
-      setContextMenuPosition({ x: e.screenX, y: e.screenY })
-      setContextMenuLinkId(linkId)
-    } else {
-      // 如果菜单未显示，显示菜单并设置位置
-      setContextMenuPosition({ x: e.screenX, y: e.screenY })
-      setContextMenuLinkId(linkId)
-      setShowContextMenu(true)
+    const menuWidth = 180
+    const menuHeight = 120
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    let posX = e.clientX
+    let posY = e.clientY
+
+    if (posX + menuWidth > viewportWidth) {
+      posX = viewportWidth - menuWidth - 12
     }
+    if (posY + menuHeight > viewportHeight) {
+      posY = viewportHeight - menuHeight - 12
+    }
+
+    posX = Math.max(12, posX)
+    posY = Math.max(12, posY)
+
+    setContextMenuPosition({ x: posX, y: posY })
+    setContextMenuLinkId(linkId)
+    setShowContextMenu(true)
   }
 
   // 重新分析链接
@@ -403,16 +429,16 @@ export default function Home() {
       <Particles />
       
       {/* 右上角登录状态 */}
-      <div className="absolute top-4 right-4 z-20 group">
-        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="absolute top-4 right-4 z-20">
+        <div className="flex items-center gap-2 bg-white/70 dark:bg-gray-900/60 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-full px-3 py-1.5 shadow-sm transition-colors duration-200">
           {user ? (
             <>
-              <span className="text-sm text-gray-500 dark:text-gray-400">欢迎，{user.username}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">欢迎，{user.username}</span>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
-                className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-gray-200/50 dark:border-gray-600/50 text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200"
+                className="border-gray-200/50 dark:border-gray-600/50 text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200"
               >
                 退出
               </Button>
@@ -422,7 +448,7 @@ export default function Home() {
               onClick={handleLogin}
               size="sm"
               variant="ghost"
-              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/30 dark:hover:bg-gray-800/30 backdrop-blur-sm border border-gray-200/30 dark:border-gray-600/30 hover:border-gray-300/50 dark:hover:border-gray-500/50 transition-all duration-200"
+              className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-white/40 dark:hover:bg-gray-800/40 transition-all duration-200"
             >
               登录
             </Button>
@@ -442,8 +468,8 @@ export default function Home() {
               placeholder="搜索网址..."
               value={search}
               onChange={handleInputChange}
-              onMouseEnter={() => setIsSearchFocused(true)}
-              onMouseLeave={() => setIsSearchFocused(false)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
               className="w-full bg-transparent !border-0 !border-b-2 !border-transparent focus:!ring-0 focus:!ring-offset-0 focus:outline-none !shadow-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus-visible:!shadow-none px-4 py-3 pr-10 text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 !rounded-none"
             />
             {/* 虚线动画效果 */}
@@ -465,6 +491,7 @@ export default function Home() {
               <button
                 onClick={() => setSearch("")}
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/50 rounded-full p-1.5 transition-all duration-200"
+                aria-label="清除搜索关键词"
                 type="button"
               >
                 <svg
@@ -489,6 +516,7 @@ export default function Home() {
                 className="group relative rounded-full w-10 h-10 p-0 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 hover:scale-105 active:scale-95 cursor-pointer overflow-hidden" 
                 size="sm"
                 onClick={() => setAddDialogOpen(true)}
+                aria-label="添加链接"
               >
                 {/* 背景光效 */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
@@ -556,38 +584,28 @@ export default function Home() {
       </div>
       
       <div className="w-full max-w-7xl relative z-10">
-                 {userLoading ? (
-           <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
-             {Array.from({ length: 8 }).map((_, index) => (
-               <LinkCardSkeleton key={index} />
-             ))}
-             
-             {/* 填充组件，避免最后一行左边空白 */}
-             <div className="h-0 w-80 opacity-0"></div>
-             <div className="h-0 w-80 opacity-0"></div>
-             <div className="h-0 w-80 opacity-0"></div>
-           </div>
-         ) : loading ? (
-           <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
-             {Array.from({ length: 8 }).map((_, index) => (
-               <LinkCardSkeleton key={index} />
-             ))}
-             
-             {/* 填充组件，避免最后一行左边空白 */}
-             <div className="h-0 w-80 opacity-0"></div>
-             <div className="h-0 w-80 opacity-0"></div>
-             <div className="h-0 w-80 opacity-0"></div>
-           </div>
+        {userLoading ? (
+          <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <LinkCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : loading ? (
+          <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <LinkCardSkeleton key={index} />
+            ))}
+          </div>
         ) : links.length === 0 ? (
           <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
             暂无收藏网址
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center">
-                             {links.map((link: Link) => {
+            <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {links.map((link: Link) => {
                  return (
-                                     <LinkCard
+                  <LinkCard
                      key={link.id}
                      id={link.id}
                      title={link.title}
@@ -602,24 +620,14 @@ export default function Home() {
                    />
                 )
               })}
-              
-              {/* 填充组件，避免最后一行左边空白 */}
-              <div className="h-0 w-80 opacity-0"></div>
-              <div className="h-0 w-80 opacity-0"></div>
-              <div className="h-0 w-80 opacity-0"></div>
             </div>
-                         {loadingMore && (
-               <div className="flex flex-wrap gap-3 p-3 backdrop-blur-sm rounded-xl justify-center mt-4">
-                 {Array.from({ length: 4 }).map((_, index) => (
-                   <LinkCardSkeleton key={`more-${index}`} />
-                 ))}
-                 
-                 {/* 填充组件，避免最后一行左边空白 */}
-                 <div className="h-0 w-80 opacity-0"></div>
-                 <div className="h-0 w-80 opacity-0"></div>
-                 <div className="h-0 w-80 opacity-0"></div>
-               </div>
-             )}
+            {loadingMore && (
+              <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <LinkCardSkeleton key={`more-${index}`} />
+                ))}
+              </div>
+            )}
             {!hasMore && links.length > 0 && (
               <div className="text-center text-gray-400 py-8 text-lg">
                 已加载全部内容
@@ -636,8 +644,7 @@ export default function Home() {
             className="fixed z-[9999] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200/60 dark:border-gray-600/60 rounded-xl shadow-2xl py-2 min-w-[140px] animate-in fade-in-0 zoom-in-95 duration-100"
             style={{
               left: contextMenuPosition.x,
-              top: contextMenuPosition.y,
-              transform: 'translateY(-100%)'
+              top: contextMenuPosition.y
             }}
           >
             <button

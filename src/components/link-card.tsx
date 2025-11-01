@@ -32,6 +32,7 @@ export function LinkCard({
   onTagClick, 
   onDelete, 
   isLoggedIn, 
+  onContextMenu,
   children 
 }: LinkCardProps) {
   const [isReanalyzing, setIsReanalyzing] = useState(false)
@@ -127,7 +128,10 @@ export function LinkCard({
   }
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer w-80 h-36">
+    <Card
+      className="group hover:shadow-lg transition-all duration-200 cursor-pointer min-h-[9rem] h-full w-full"
+      onContextMenu={(e) => onContextMenu?.(e, id)}
+    >
       <CardContent className="p-4 h-full">
         <div className="flex items-start justify-between h-full">
           <div className="flex items-start gap-3 flex-1 min-w-0" onClick={handleClick}>
