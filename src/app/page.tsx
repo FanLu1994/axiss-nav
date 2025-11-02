@@ -12,7 +12,6 @@ import { RandomTags } from "@/components/random-tags"
 import { RecommendedLinks } from "@/components/recommended-links"
 import { Particles } from "@/components/particles"
 import { DarkModeToggle } from "@/components/dark-mode-toggle"
-import { useClipboardDetector } from "@/components/use-clipboard-detector"
 
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -44,6 +43,7 @@ interface Link {
 
 export default function Home() {
   const [search, setSearch] = useState("")
+  const [searchQuery, setSearchQuery] = useState("") // 实际用于搜索的查询
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [links, setLinks] = useState<Link[]>([])
   const [loading, setLoading] = useState(false)
@@ -57,38 +57,50 @@ export default function Home() {
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
   const [contextMenuLinkId, setContextMenuLinkId] = useState<string | null>(null)
   const [isReanalyzing, setIsReanalyzing] = useState(false)
-  const [clipboardDialogOpen, setClipboardDialogOpen] = useState(false)
-  const [detectedUrl, setDetectedUrl] = useState("")
+  const [initialUrl, setInitialUrl] = useState<string>("")
   const router = useRouter()
 
-  // URL检测回调函数，检查URL是否已存在
-  const handleUrlDetected = useCallback((url: string) => {
-    console.log('🎯 页面检测到URL:', url)
-    // 检查该URL是否已经存在于链接列表中
-    const normalizedUrl = url.trim().toLowerCase()
-    const urlExists = links.some(link => {
-      const linkUrl = link.url.trim().toLowerCase()
-      return linkUrl === normalizedUrl
-    })
-    
-    if (urlExists) {
-      console.log('⚠️ URL已存在于链接列表中，跳过弹出对话框')
-      return
+  // 验证URL格式
+  const isValidUrl = useCallback((text: string): boolean => {
+    try {
+      const url = new URL(text.trim())
+      return url.protocol === 'http:' || url.protocol === 'https:'
+    } catch {
+      return false
     }
-    
-    setDetectedUrl(url)
-    setClipboardDialogOpen(true)
-  }, [links])
+  }, [])
 
-  // 剪贴板检测hook
-  const { manualDetect, clearDetection } = useClipboardDetector({
-    autoDetect: true, // 启用自动检测
-    showToast: false, // 不显示toast，使用自定义对话框
-    minUrlLength: 10,
-    excludedDomains: ['localhost', '127.0.0.1', 'example.com'],
-    enableVisibilityDetection: true, // 启用页面可见性检测
-    onUrlDetected: handleUrlDetected
-  })
+  // 读取剪贴板并验证URL
+  const readClipboardAndValidate = useCallback(async (): Promise<string | null> => {
+    try {
+      const text = await navigator.clipboard.readText()
+      const trimmedText = text.trim()
+      
+      if (!trimmedText) {
+        return null
+      }
+
+      if (isValidUrl(trimmedText)) {
+        return trimmedText
+      }
+      
+      return null
+    } catch (error) {
+      console.warn('无法读取剪贴板:', error)
+      return null
+    }
+  }, [isValidUrl])
+
+  // 处理添加按钮点击
+  const handleAddClick = useCallback(async () => {
+    const url = await readClipboardAndValidate()
+    if (url) {
+      setInitialUrl(url)
+    } else {
+      setInitialUrl("")
+    }
+    setAddDialogOpen(true)
+  }, [readClipboardAndValidate])
 
   // 检查是否需要初始化和用户登录状态 - 优化版本
   useEffect(() => {
@@ -178,7 +190,7 @@ export default function Home() {
       const params = new URLSearchParams({
         page: nextPage.toString(),
         pageSize: '20',
-        ...(search && { search: search })
+        ...(searchQuery && { search: searchQuery })
       })
       
       const res = await fetch(`/api/links?${params}`)
@@ -196,42 +208,12 @@ export default function Home() {
       setHasMore(false)
     }
     setLoadingMore(false)
-  }, [page, hasMore, loadingMore, search])
+  }, [page, hasMore, loadingMore, searchQuery])
 
   // 立即开始加载链接数据，不等待用户状态
   useEffect(() => {
     fetchLinks()
   }, [fetchLinks])
-
-  // 页面焦点时检测剪贴板（简化版本，主要依赖hook的可见性检测）
-  useEffect(() => {
-    console.log('🎧 页面开始监听用户交互事件')
-
-    const handleUserInteraction = () => {
-      console.log('👆 用户交互事件触发')
-      // 用户首次交互时检测一次剪贴板
-      setTimeout(() => {
-        if (document.hasFocus()) {
-          console.log('✅ 用户交互后页面获得焦点，开始检测剪贴板')
-          manualDetect()
-        } else {
-          console.log('❌ 用户交互后页面未获得焦点，跳过检测')
-        }
-      }, 100)
-    }
-
-    // 监听用户交互事件（点击、键盘输入等）
-    document.addEventListener('click', handleUserInteraction, { once: true })
-    document.addEventListener('keydown', handleUserInteraction, { once: true })
-    document.addEventListener('mousedown', handleUserInteraction, { once: true })
-
-    return () => {
-      console.log('🧹 清理页面交互监听事件')
-      document.removeEventListener('click', handleUserInteraction)
-      document.removeEventListener('keydown', handleUserInteraction)
-      document.removeEventListener('mousedown', handleUserInteraction)
-    }
-  }, [manualDetect])
 
   // 滚动监听
   useEffect(() => {
@@ -250,32 +232,37 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [loadMoreLinks])
 
-  // 当搜索条件改变时重新获取数据 - 优化防抖
+  // 当搜索查询改变时重新获取数据
   useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      fetchLinks(search)
-    }, 200) // 减少防抖时间，提升响应速度
-
-    return () => clearTimeout(delayedSearch)
-  }, [search, fetchLinks])
+    fetchLinks(searchQuery)
+  }, [searchQuery, fetchLinks])
 
   const handleAddSuccess = () => {
-    fetchLinks(search)
+    fetchLinks(searchQuery)
   }
 
-  // 处理剪贴板对话框关闭
-  const handleClipboardDialogClose = () => {
-    console.log('🔒 关闭剪贴板对话框')
-    setClipboardDialogOpen(false)
-    clearDetection()
+  // 处理对话框关闭，清除初始URL
+  const handleDialogOpenChange = (open: boolean) => {
+    setAddDialogOpen(open)
+    if (!open) {
+      setInitialUrl("")
+    }
   }
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value)
   }
 
+  // 处理回车键触发搜索
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setSearchQuery(search)
+    }
+  }
+
   const handleTagClick = (tag: string) => {
     setSearch(tag)
+    setSearchQuery(tag) // 点击标签时立即触发搜索
   }
 
   const handleLogout = () => {
@@ -306,7 +293,7 @@ export default function Home() {
       if (res.ok) {
         toast.success("删除成功！")
         // 重新获取数据
-        fetchLinks(search)
+        fetchLinks(searchQuery)
       } else {
         const data = await res.json()
         toast.error(data.error || "删除失败")
@@ -371,7 +358,7 @@ export default function Home() {
         console.log('重新分析成功:', result)
         toast.success('重新分析成功')
         // 重新获取数据
-        fetchLinks(search)
+        fetchLinks(searchQuery)
       } else {
         const error = await response.json()
         console.error('重新分析失败:', error)
@@ -468,6 +455,7 @@ export default function Home() {
               placeholder="搜索网址..."
               value={search}
               onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
               className="w-full bg-transparent !border-0 !border-b-2 !border-transparent focus:!ring-0 focus:!ring-offset-0 focus:outline-none !shadow-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus-visible:!shadow-none px-4 py-3 pr-10 text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 !rounded-none"
@@ -489,7 +477,10 @@ export default function Home() {
             </div>
             {search && (
               <button
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("")
+                  setSearchQuery("") // 清除搜索时也清除查询
+                }}
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/50 rounded-full p-1.5 transition-all duration-200"
                 aria-label="清除搜索关键词"
                 type="button"
@@ -515,7 +506,7 @@ export default function Home() {
               <Button 
                 className="group relative rounded-full w-10 h-10 p-0 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 hover:scale-105 active:scale-95 cursor-pointer overflow-hidden" 
                 size="sm"
-                onClick={() => setAddDialogOpen(true)}
+                onClick={handleAddClick}
                 aria-label="添加链接"
               >
                 {/* 背景光效 */}
@@ -546,19 +537,9 @@ export default function Home() {
               </Button>
               <AddLinkDialog
                 open={addDialogOpen}
-                onOpenChange={setAddDialogOpen}
+                onOpenChange={handleDialogOpenChange}
+                initialUrl={initialUrl}
                 onSuccess={handleAddSuccess}
-              />
-              
-              {/* 剪贴板检测对话框 */}
-              <AddLinkDialog
-                open={clipboardDialogOpen}
-                onOpenChange={setClipboardDialogOpen}
-                initialUrl={detectedUrl}
-                onSuccess={() => {
-                  handleClipboardDialogClose()
-                  handleAddSuccess()
-                }}
               />
             </>
           )}

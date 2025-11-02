@@ -29,7 +29,7 @@ interface JWTPayload {
 // 生成JWT令牌
 export function generateToken(payload: JWTPayload): string {
   const secret = process.env.JWT_SECRET || 'fallback-secret';
-  return jwt.sign(payload, secret, { expiresIn: '7d' });
+  return jwt.sign(payload, secret, { expiresIn: '180d' }); // 半年（180天）
 }
 
 // 验证JWT令牌
