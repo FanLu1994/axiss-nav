@@ -72,7 +72,9 @@
 - 打包 / 生产构建：`pnpm build`
 - 启动生产服务：`pnpm start`（通常需先执行 `pnpm build`）
 - 代码检查：`pnpm lint`
-- 类型检查：`pnpm exec tsc --noEmit`
+- 类型检查：`pnpm typecheck`
+- 格式化：`pnpm format`
+- 格式化检查：`pnpm format:check`
 - Prisma 生成客户端：`pnpm dlx prisma generate`
 - 数据库推送：`pnpm dlx prisma db push`
 - 初始化管理员：`pnpm run init-admin`
@@ -83,10 +85,14 @@
 - 本地备份：`pnpm run simple-backup`
 - 自动备份：`pnpm run auto-backup`
 
-当前未配置 `format` 脚本，也未引入 Prettier。需要格式化时，先确认项目要采用的格式化工具与脚本，不要私自新增依赖。
+每次改动后必须执行检查和格式化：
+
+1. 运行 `pnpm format` 格式化改动。
+2. 运行 `pnpm typecheck` 检查类型。
+3. 运行 `pnpm lint` 检查代码规范。
+4. 如无法执行任一命令，必须在最终回复中说明原因。
 
 ## 6. 禁止
 
 - 禁止私自引入依赖，如需可交给用户引入
 - 禁止自行启动前端服务
-
