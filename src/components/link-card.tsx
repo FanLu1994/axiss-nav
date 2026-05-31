@@ -1,11 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Trash2, RefreshCw } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { ExternalLink, MoreHorizontal, Pencil, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface LinkCardProps {
@@ -14,236 +19,196 @@ interface LinkCardProps {
   url: string
   description?: string
   icon?: string
-  tags?: string[] // 现在是字符串数组
+  tags?: string[]
+  category?: string
+  clickCount?: number
   onTagClick?: (tag: string) => void
   onDelete?: (id: string) => void
+  onEdit?: (id: string) => void
+  onReanalyze?: (id: string) => Promise<void> | void
   isLoggedIn?: boolean
-  onContextMenu?: (e: React.MouseEvent, linkId: string) => void
-  children?: React.ReactNode
 }
 
-export function LinkCard({ 
-  id, 
-  title, 
-  url, 
-  description, 
-  icon, 
-  tags, 
-  onTagClick, 
-  onDelete, 
-  isLoggedIn, 
-  onContextMenu,
-  children 
+function getDomain(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return url
+  }
+}
+
+function getInitial(title: string) {
+  return title.trim().charAt(0).toUpperCase() || "A"
+}
+
+export function LinkCard({
+  id,
+  title,
+  url,
+  description,
+  icon,
+  tags,
+  category,
+  clickCount = 0,
+  onTagClick,
+  onDelete,
+  onEdit,
+  onReanalyze,
+  isLoggedIn
 }: LinkCardProps) {
   const [isReanalyzing, setIsReanalyzing] = useState(false)
+  const domain = getDomain(url)
+  const visibleTags = tags?.slice(0, 3) || []
 
-  const handleClick = async () => {
+  const openLink = async () => {
     try {
-      // 记录点击
-      await fetch('/api/links/click', {
-        method: 'POST',
+      await fetch("/api/links/click", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ linkId: id })
       })
-      
-      // 打开链接
-      window.open(url, '_blank')
     } catch (error) {
-      console.error('记录点击失败:', error)
-      // 即使记录失败也打开链接
-      window.open(url, '_blank')
+      console.error("记录点击失败:", error)
+    } finally {
+      window.open(url, "_blank", "noopener,noreferrer")
     }
   }
 
-  const handleReanalyze = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    
+  const handleReanalyze = async () => {
     if (!isLoggedIn) {
-      toast.error('请先登录')
+      toast.error("请先登录")
       return
     }
 
     setIsReanalyzing(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/links/reanalyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ linkId: id })
-      })
-
-      if (response.ok) {
-        toast.success('重新分析完成')
-        // 可以在这里刷新页面或更新数据
-        window.location.reload()
-      } else {
-        const error = await response.json()
-        toast.error(error.error || '重新分析失败')
-      }
-    } catch (error) {
-      console.error('重新分析失败:', error)
-      toast.error('重新分析失败')
+      await onReanalyze?.(id)
     } finally {
       setIsReanalyzing(false)
     }
   }
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    
+  const handleDelete = () => {
     if (!isLoggedIn) {
-      toast.error('请先登录')
+      toast.error("请先登录")
       return
     }
 
-    if (!confirm('确定要删除这个链接吗？')) {
-      return
-    }
-
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/links?id=${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        toast.success('删除成功')
-        onDelete?.(id)
-      } else {
-        const error = await response.json()
-        toast.error(error.error || '删除失败')
-      }
-    } catch (error) {
-      console.error('删除失败:', error)
-      toast.error('删除失败')
+    if (confirm("确定要删除这个链接吗？")) {
+      onDelete?.(id)
     }
   }
 
   return (
-    <Card
-      className="group hover:shadow-lg transition-all duration-200 cursor-pointer min-h-[9rem] h-full w-full"
-      onContextMenu={(e) => onContextMenu?.(e, id)}
-    >
-      <CardContent className="p-4 h-full">
-        <div className="flex items-start justify-between h-full">
-          <div className="flex items-start gap-3 flex-1 min-w-0" onClick={handleClick}>
-            {/* 左侧大图标 */}
-            <div className="flex-shrink-0">
-              {icon ? (
-                <img 
-                  src={icon} 
-                  alt="网站图标" 
-                  className="w-12 h-12 rounded"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              ) : (
-                <div className="w-12 h-12 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <img 
-                    src={`https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(url)}`}
-                    alt="网站图标" 
-                    className="w-8 h-8"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+    <article className="axiss-panel group flex min-h-[10.5rem] flex-col rounded-lg p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(20,46,41,0.14)] dark:hover:shadow-[0_24px_70px_rgba(0,0,0,0.36)]">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={openLink}
+          className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-emerald-950/10 bg-[#f5f0df]/70 text-sm font-semibold text-emerald-950 shadow-inner transition-colors hover:bg-[#efe5c8] dark:border-emerald-100/10 dark:bg-emerald-100/10 dark:text-[#e4d8ac] dark:hover:bg-emerald-100/15"
+          aria-label={`打开 ${title}`}
+        >
+          {icon ? (
+            <img
+              src={icon}
+              alt={`${title} 图标`}
+              className="h-7 w-7 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = "none"
+              }}
+            />
+          ) : (
+            <span>{getInitial(title)}</span>
+          )}
+        </button>
 
-            {/* 右侧内容 */}
-            <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
-              <div>
-                <h3 className="font-medium text-sm truncate group-hover:text-blue-600 transition-colors mb-1">
-                  {title}
-                </h3>
-                
-                <p className="text-xs text-gray-500 line-clamp-2 mb-2">
-                  {description || url}
-                </p>
-              </div>
-
-              {/* 底部标签和操作按钮 */}
-              <div className="flex items-center justify-between">
-                {tags && tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 max-h-12 overflow-hidden">
-                    {tags.slice(0, 4).map((tag, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="text-xs cursor-pointer hover:bg-blue-100 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onTagClick?.(tag)
-                        }}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                    {tags.length > 4 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{tags.length - 4}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-
-                {isLoggedIn && (
-                  <div className="flex items-center gap-1 ml-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleReanalyze}
-                            disabled={isReanalyzing}
-                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <RefreshCw className={`w-3 h-3 ${isReanalyzing ? 'animate-spin' : ''}`} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>重新分析</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleDelete}
-                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>删除链接</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={openLink}
+            className="block max-w-full truncate text-left text-sm font-semibold text-slate-950 transition-colors hover:text-emerald-800 dark:text-slate-100 dark:hover:text-[#d8cfaa]"
+          >
+            {title}
+          </button>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            <span className="truncate">{domain}</span>
+            {category && (
+              <>
+                <span className="text-emerald-900/20 dark:text-emerald-100/20">/</span>
+                <span className="truncate">{category}</span>
+              </>
+            )}
           </div>
         </div>
 
-        {children}
-      </CardContent>
-    </Card>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <MoreHorizontal className="h-4 w-4" />
+              <span className="sr-only">更多操作</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={openLink}>
+              <ExternalLink className="h-4 w-4" />
+              打开链接
+            </DropdownMenuItem>
+            {isLoggedIn && (
+              <>
+                <DropdownMenuItem onClick={() => onEdit?.(id)}>
+                  <Pencil className="h-4 w-4" />
+                  编辑
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleReanalyze} disabled={isReanalyzing}>
+                  <RefreshCw className={`h-4 w-4 ${isReanalyzing ? "animate-spin" : ""}`} />
+                  重新分析
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+                  <Trash2 className="h-4 w-4" />
+                  删除
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <button
+        type="button"
+        onClick={openLink}
+        className="mt-3 line-clamp-2 min-h-10 text-left text-sm leading-5 text-slate-600 transition-colors hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100"
+      >
+        {description || url}
+      </button>
+
+      <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+        <div className="flex min-w-0 flex-wrap gap-1.5">
+          {visibleTags.map(tag => (
+            <Badge
+              key={tag}
+              variant="secondary"
+              className="rounded-md px-2 py-0.5 text-xs font-medium"
+              onClick={(e) => {
+                e.stopPropagation()
+                onTagClick?.(tag)
+              }}
+            >
+              {tag}
+            </Badge>
+          ))}
+          {tags && tags.length > 3 && (
+            <Badge variant="outline" className="rounded-md px-2 py-0.5 text-xs">
+              +{tags.length - 3}
+            </Badge>
+          )}
+        </div>
+        <span className="shrink-0 text-xs tabular-nums text-slate-400 dark:text-slate-500">
+          {clickCount} 次
+        </span>
+      </div>
+    </article>
   )
 }

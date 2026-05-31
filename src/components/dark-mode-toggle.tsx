@@ -11,7 +11,7 @@ export function DarkModeToggle() {
       variant="outline"
       size="sm"
       onClick={toggleDarkMode}
-      className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-gray-200/50 dark:border-gray-600/50 text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200"
+      className="border-emerald-950/10 bg-white/46 text-slate-600 shadow-sm backdrop-blur transition-all duration-200 hover:bg-white/72 hover:text-emerald-950 dark:border-emerald-100/10 dark:bg-emerald-950/24 dark:text-slate-300 dark:hover:bg-emerald-950/38 dark:hover:text-[#d8cfaa]"
       title={isDarkMode ? "切换到浅色模式" : "切换到深色模式"}
     >
       {isDarkMode ? (

@@ -2,6 +2,43 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserFromToken } from '@/lib/utils'
 
+type SortOption = 'created_desc' | 'created_asc' | 'clicks_desc' | 'title_asc'
+type FilterOption = 'all' | 'frequent' | 'recent' | 'uncategorized'
+
+function parseTags(tags: string | null): string[] {
+  if (!tags) return []
+  try {
+    const parsed = JSON.parse(tags)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map(tag => typeof tag === 'string' ? tag : tag?.name)
+      .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
+  } catch {
+    return []
+  }
+}
+
+function normalizeTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return []
+
+  const tagNames = new Set<string>()
+  for (const tag of tags) {
+    const name = (typeof tag === 'string' ? tag : tag?.name)?.trim()
+    if (name) {
+      tagNames.add(name)
+    }
+  }
+
+  return Array.from(tagNames)
+}
+
+function buildOrderBy(sort: SortOption) {
+  if (sort === 'created_asc') return [{ createdAt: 'asc' as const }]
+  if (sort === 'clicks_desc') return [{ clickCount: 'desc' as const }, { createdAt: 'desc' as const }]
+  if (sort === 'title_asc') return [{ title: 'asc' as const }]
+  return [{ createdAt: 'desc' as const }]
+}
+
 // 获取链接 - 支持分页和搜索 - 优化版本
 export async function GET(request: NextRequest) {
   try {
@@ -9,20 +46,27 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '20'), 100) // 限制最大页面大小
     const search = searchParams.get('search')?.trim() || ''
+    const tag = searchParams.get('tag')?.trim() || ''
+    const category = searchParams.get('category')?.trim() || ''
+    const filter = (searchParams.get('filter') || 'all') as FilterOption
+    const sort = (searchParams.get('sort') || 'created_desc') as SortOption
     
-    // 优化的搜索条件
-    const whereCondition = search 
-      ? {
-          isActive: true,
-          OR: [
-            { title: { contains: search, mode: 'insensitive' as const } },
-            { url: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-            { category: { contains: search, mode: 'insensitive' as const } },
-            { tags: { contains: search, mode: 'insensitive' as const } }
-          ]
-        }
-      : { isActive: true }
+    const whereCondition = {
+      isActive: true,
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' as const } },
+          { url: { contains: search, mode: 'insensitive' as const } },
+          { description: { contains: search, mode: 'insensitive' as const } },
+          { category: { contains: search, mode: 'insensitive' as const } },
+          { tags: { contains: search, mode: 'insensitive' as const } }
+        ]
+      }),
+      ...(tag && { tags: { contains: tag, mode: 'insensitive' as const } }),
+      ...(category && { category: { equals: category, mode: 'insensitive' as const } }),
+      ...(filter === 'frequent' && { clickCount: { gt: 0 } }),
+      ...(filter === 'uncategorized' && { category: null })
+    }
 
     const skip = (page - 1) * pageSize
 
@@ -46,10 +90,7 @@ export async function GET(request: NextRequest) {
           category: true,
           color: true
         },
-        orderBy: [
-          { order: 'asc' },
-          { createdAt: 'desc' }
-        ],
+        orderBy: filter === 'recent' ? [{ createdAt: 'desc' }] : buildOrderBy(sort),
         skip,
         take: pageSize
       })
@@ -58,7 +99,7 @@ export async function GET(request: NextRequest) {
     // 处理tags字段，将JSON字符串转换为数组
     const processedLinks = links.map(link => ({
       ...link,
-      tags: link.tags ? JSON.parse(link.tags) : []
+      tags: parseTags(link.tags)
     }))
     
     const response = NextResponse.json({
@@ -85,8 +126,8 @@ export async function GET(request: NextRequest) {
 // 验证URL格式
 function isValidUrl(url: string): boolean {
   try {
-    new URL(url)
-    return true
+    const urlObj = new URL(url)
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:'
   } catch {
     return false
   }
@@ -114,47 +155,122 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL格式不正确' }, { status: 400 })
     }
 
-    // 处理标签数据
-    const tagNames = new Set<string>() // 用于去重
-    const processedTags = []
-    
-    if (tags && Array.isArray(tags) && tags.length > 0) {
-      // 使用传入的标签
-      for (const tagInfo of tags) {
-        const tagName = (typeof tagInfo === 'string' ? tagInfo : tagInfo.name)?.trim()
-        
-        if (!tagName || tagNames.has(tagName)) continue // 跳过空标签和重复标签
-        tagNames.add(tagName)
-        processedTags.push(tagName)
+    const existingLink = await prisma.link.findFirst({
+      where: {
+        url: url.trim(),
+        isActive: true
       }
-    } else {
-      // 使用默认标签
-      const defaultTags = ['链接', '收藏']
-      for (const tagName of defaultTags) {
-        if (tagNames.has(tagName)) continue
-        tagNames.add(tagName)
-        processedTags.push(tagName)
-      }
+    })
+
+    if (existingLink) {
+      return NextResponse.json({
+        error: '该网址已经存在',
+        existingLink: {
+          id: existingLink.id,
+          title: existingLink.title,
+          url: existingLink.url
+        }
+      }, { status: 409 })
     }
+
+    // 处理标签数据
+    const processedTags = normalizeTags(tags)
+    const finalTags = processedTags.length > 0 ? processedTags : ['链接', '收藏']
 
     const link = await prisma.link.create({
       data: {
-        title,
-        url,
+        title: title.trim(),
+        url: url.trim(),
         description,
         icon: icon || '',
-        tags: JSON.stringify(processedTags),
-        category: category || processedTags[0] || null,
+        tags: JSON.stringify(finalTags),
+        category: category || finalTags[0] || null,
         color: color || null
       }
     })
     
     return NextResponse.json({
       ...link,
-      tags: processedTags
+      tags: finalTags
     })
   } catch (error) {
     console.error('添加链接错误:', error)
+    return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })
+  }
+}
+
+// 编辑链接 - 需要登录
+export async function PATCH(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization') || undefined
+    const user = getUserFromToken(authHeader)
+    if (!user) {
+      return NextResponse.json({ error: '未授权' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { id, title, url, description, icon, tags, category, color } = body
+
+    if (!id) {
+      return NextResponse.json({ error: '链接ID不能为空' }, { status: 400 })
+    }
+
+    if (!title?.trim() || !url?.trim()) {
+      return NextResponse.json({ error: '标题和URL不能为空' }, { status: 400 })
+    }
+
+    if (!isValidUrl(url)) {
+      return NextResponse.json({ error: 'URL格式不正确' }, { status: 400 })
+    }
+
+    const link = await prisma.link.findUnique({
+      where: { id }
+    })
+
+    if (!link || !link.isActive) {
+      return NextResponse.json({ error: '链接不存在' }, { status: 404 })
+    }
+
+    const duplicate = await prisma.link.findFirst({
+      where: {
+        url: url.trim(),
+        isActive: true,
+        NOT: { id }
+      }
+    })
+
+    if (duplicate) {
+      return NextResponse.json({
+        error: '该网址已经存在',
+        existingLink: {
+          id: duplicate.id,
+          title: duplicate.title,
+          url: duplicate.url
+        }
+      }, { status: 409 })
+    }
+
+    const processedTags = normalizeTags(tags)
+
+    const updatedLink = await prisma.link.update({
+      where: { id },
+      data: {
+        title: title.trim(),
+        url: url.trim(),
+        description: description || null,
+        icon: icon || '',
+        tags: JSON.stringify(processedTags),
+        category: category || null,
+        color: color || null
+      }
+    })
+
+    return NextResponse.json({
+      ...updatedLink,
+      tags: processedTags
+    })
+  } catch (error) {
+    console.error('编辑链接错误:', error)
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })
   }
 }

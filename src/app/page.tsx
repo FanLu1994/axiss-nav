@@ -1,22 +1,20 @@
 "use client"
 
-import { useState, ChangeEvent, useEffect, useCallback } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { LinkCard } from "@/components/link-card"
-import { LinkCardSkeleton } from "@/components/link-card-skeleton"
-import { RecommendedLinksSkeleton } from "@/components/recommended-links-skeleton"
-import { RandomTagsSkeleton } from "@/components/random-tags-skeleton"
-import { AddLinkDialog } from "@/components/add-link-dialog"
-import { RandomTags } from "@/components/random-tags"
-import { RecommendedLinks } from "@/components/recommended-links"
-import { Particles } from "@/components/particles"
-import { DarkModeToggle } from "@/components/dark-mode-toggle"
-
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { LinkCard } from "@/components/link-card"
+import { LinkCardSkeleton } from "@/components/link-card-skeleton"
+import { AddLinkDialog, EditableLink } from "@/components/add-link-dialog"
+import { RandomTags } from "@/components/random-tags"
+import { RecommendedLinks } from "@/components/recommended-links"
+import { DarkModeToggle } from "@/components/dark-mode-toggle"
+import { VisualBackdrop } from "@/components/visual-backdrop"
+import { LogIn, LogOut, Plus, Search, SlidersHorizontal, UserRound, X } from "lucide-react"
 
-// 用户类型
 interface User {
   id: string
   username: string
@@ -24,7 +22,6 @@ interface User {
   role: string
 }
 
-// 链接类型 - 适配新的数据库结构
 interface Link {
   id: string
   title: string
@@ -36,212 +33,224 @@ interface Link {
   clickCount: number
   createdAt: string
   updatedAt: string
-  tags: string[] // 现在是字符串数组
+  tags: string[]
   category?: string
   color?: string
 }
 
+type FilterOption = "all" | "frequent" | "recent" | "uncategorized"
+type SortOption = "created_desc" | "created_asc" | "clicks_desc" | "title_asc"
+
+const filterOptions: Array<{ value: FilterOption; label: string }> = [
+  { value: "all", label: "全部" },
+  { value: "frequent", label: "常用" },
+  { value: "recent", label: "最近添加" },
+  { value: "uncategorized", label: "未分类" }
+]
+
+const sortOptions: Array<{ value: SortOption; label: string }> = [
+  { value: "created_desc", label: "最新添加" },
+  { value: "created_asc", label: "最早添加" },
+  { value: "clicks_desc", label: "点击最多" },
+  { value: "title_asc", label: "标题 A-Z" }
+]
+
+function getLinkForEdit(link: Link): EditableLink {
+  return {
+    id: link.id,
+    title: link.title,
+    url: link.url,
+    description: link.description,
+    icon: link.icon,
+    tags: link.tags || [],
+    category: link.category,
+    color: link.color
+  }
+}
+
 export default function Home() {
   const [search, setSearch] = useState("")
-  const [searchQuery, setSearchQuery] = useState("") // 实际用于搜索的查询
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeTag, setActiveTag] = useState("")
+  const [activeCategory, setActiveCategory] = useState("")
+  const [filter, setFilter] = useState<FilterOption>("all")
+  const [sort, setSort] = useState<SortOption>("created_desc")
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [editingLink, setEditingLink] = useState<EditableLink | null>(null)
   const [links, setLinks] = useState<Link[]>([])
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [userLoading, setUserLoading] = useState(true)
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [showContextMenu, setShowContextMenu] = useState(false)
-  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
-  const [contextMenuLinkId, setContextMenuLinkId] = useState<string | null>(null)
-  const [isReanalyzing, setIsReanalyzing] = useState(false)
-  const [initialUrl, setInitialUrl] = useState<string>("")
+  const [initialUrl, setInitialUrl] = useState("")
   const router = useRouter()
 
-  // 验证URL格式
+  const categories = useMemo(() => {
+    return Array.from(new Set(links.map(link => link.category).filter(Boolean) as string[])).slice(0, 8)
+  }, [links])
+
+  const buildParams = useCallback((targetPage: number) => {
+    const params = new URLSearchParams({
+      page: targetPage.toString(),
+      pageSize: "20",
+      filter,
+      sort
+    })
+
+    if (searchQuery) params.set("search", searchQuery)
+    if (activeTag) params.set("tag", activeTag)
+    if (activeCategory) params.set("category", activeCategory)
+
+    return params
+  }, [activeCategory, activeTag, filter, searchQuery, sort])
+
   const isValidUrl = useCallback((text: string): boolean => {
     try {
       const url = new URL(text.trim())
-      return url.protocol === 'http:' || url.protocol === 'https:'
+      return url.protocol === "http:" || url.protocol === "https:"
     } catch {
       return false
     }
   }, [])
 
-  // 读取剪贴板并验证URL
-  const readClipboardAndValidate = useCallback(async (): Promise<string | null> => {
+  const readClipboardAndValidate = useCallback(async (): Promise<string> => {
     try {
       const text = await navigator.clipboard.readText()
-      const trimmedText = text.trim()
-      
-      if (!trimmedText) {
-        return null
-      }
-
-      if (isValidUrl(trimmedText)) {
-        return trimmedText
-      }
-      
-      return null
-    } catch (error) {
-      console.warn('无法读取剪贴板:', error)
-      return null
+      return isValidUrl(text.trim()) ? text.trim() : ""
+    } catch {
+      return ""
     }
   }, [isValidUrl])
 
-  // 处理添加按钮点击
-  const handleAddClick = useCallback(async () => {
-    const url = await readClipboardAndValidate()
-    if (url) {
-      setInitialUrl(url)
-    } else {
-      setInitialUrl("")
-    }
-    setAddDialogOpen(true)
-  }, [readClipboardAndValidate])
+  const fetchLinks = useCallback(async () => {
+    setLoading(true)
+    setPage(1)
+    setHasMore(true)
 
-  // 检查是否需要初始化和用户登录状态 - 优化版本
+    try {
+      const response = await fetch(`/api/links?${buildParams(1)}`)
+      const result = await response.json()
+
+      if (response.ok && Array.isArray(result.data)) {
+        setLinks(result.data)
+        setHasMore(result.pagination?.hasMore || false)
+      } else {
+        setLinks([])
+        setHasMore(false)
+        if (result.error) {
+          toast.error(result.error)
+        }
+      }
+    } catch (error) {
+      console.error("获取链接失败:", error)
+      setLinks([])
+      setHasMore(false)
+    } finally {
+      setLoading(false)
+    }
+  }, [buildParams])
+
+  const loadMoreLinks = useCallback(async () => {
+    if (loadingMore || loading || !hasMore) return
+
+    setLoadingMore(true)
+    try {
+      const nextPage = page + 1
+      const response = await fetch(`/api/links?${buildParams(nextPage)}`)
+      const result = await response.json()
+
+      if (response.ok && Array.isArray(result.data)) {
+        setLinks(prev => [...prev, ...result.data])
+        setPage(nextPage)
+        setHasMore(result.pagination?.hasMore || false)
+      } else {
+        setHasMore(false)
+      }
+    } catch (error) {
+      console.error("加载更多链接失败:", error)
+      setHasMore(false)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [buildParams, hasMore, loading, loadingMore, page])
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // 并行执行初始化和用户信息获取
-        const token = localStorage.getItem('token')
-        
+        const token = localStorage.getItem("token")
         const [initCheck, userInfo] = await Promise.allSettled([
-          fetch('/api/init/check').then(res => res.json()),
+          fetch("/api/init/check").then(res => res.json()),
           token ? fetch("/api/auth/me", {
             headers: { "authorization": `Bearer ${token}` }
           }).then(res => res.ok ? res.json() : null) : Promise.resolve(null)
         ])
-        
-        // 处理初始化检查结果
-        if (initCheck.status === 'fulfilled' && initCheck.value.needsInitialization) {
-          router.push('/init')
+
+        if (initCheck.status === "fulfilled" && initCheck.value.needsInitialization) {
+          router.push("/init")
           return
         }
-        
-        // 处理用户信息结果
-        if (userInfo.status === 'fulfilled' && userInfo.value) {
+
+        if (userInfo.status === "fulfilled" && userInfo.value) {
           setUser(userInfo.value)
-          // 用户登录成功后，可以预加载一些数据
-          // 这里可以添加预加载逻辑
         } else if (token) {
-          // 用户信息获取失败，清除无效token
-          localStorage.removeItem('token')
+          localStorage.removeItem("token")
           setUser(null)
         }
       } catch (error) {
-        console.error('应用初始化失败:', error)
-        // 清除可能无效的token
-        localStorage.removeItem('token')
+        console.error("应用初始化失败:", error)
+        localStorage.removeItem("token")
         setUser(null)
       } finally {
         setUserLoading(false)
       }
     }
-    
+
     initializeApp()
   }, [router])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(search.trim())
+    }, 350)
 
+    return () => window.clearTimeout(timer)
+  }, [search])
 
-  // 加载初始数据
-  const fetchLinks = useCallback(async (searchQuery = "") => {
-    setLoading(true)
-    setPage(1)
-    setHasMore(true)
-    try {
-      const params = new URLSearchParams({
-        page: '1',
-        pageSize: '20',
-        ...(searchQuery && { search: searchQuery })
-      })
-      
-      const res = await fetch(`/api/links?${params}`)
-      const response = await res.json()
-      
-      if (response.data && Array.isArray(response.data)) {
-        setLinks(response.data)
-        setHasMore(response.pagination?.hasMore || false)
-      } else {
-        setLinks([])
-        setHasMore(false)
-        if (response.error) {
-          console.error('获取链接失败:', response.error)
-        }
-      }
-    } catch (error) {
-      console.error('获取链接失败:', error)
-      setLinks([])
-      setHasMore(false)
-    }
-    setLoading(false)
-  }, [])
-
-  // 加载更多数据
-  const loadMoreLinks = useCallback(async () => {
-    if (loadingMore || !hasMore) return
-    
-    setLoadingMore(true)
-    try {
-      const nextPage = page + 1
-      const params = new URLSearchParams({
-        page: nextPage.toString(),
-        pageSize: '20',
-        ...(searchQuery && { search: searchQuery })
-      })
-      
-      const res = await fetch(`/api/links?${params}`)
-      const response = await res.json()
-      
-      if (response.data && Array.isArray(response.data)) {
-        setLinks(prev => [...prev, ...response.data])
-        setPage(nextPage)
-        setHasMore(response.pagination?.hasMore || false)
-      } else {
-        setHasMore(false)
-      }
-    } catch (error) {
-      console.error('加载更多链接失败:', error)
-      setHasMore(false)
-    }
-    setLoadingMore(false)
-  }, [page, hasMore, loadingMore, searchQuery])
-
-  // 立即开始加载链接数据，不等待用户状态
   useEffect(() => {
     fetchLinks()
   }, [fetchLinks])
 
-  // 滚动监听
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY
       const windowHeight = window.innerHeight
       const documentHeight = document.documentElement.scrollHeight
-      
-      // 当滚动到距离底部100px时触发加载
-      if (scrollTop + windowHeight >= documentHeight - 100) {
+
+      if (scrollTop + windowHeight >= documentHeight - 160) {
         loadMoreLinks()
       }
     }
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [loadMoreLinks])
 
-  // 当搜索查询改变时重新获取数据
-  useEffect(() => {
-    fetchLinks(searchQuery)
-  }, [searchQuery, fetchLinks])
-
-  const handleAddSuccess = () => {
-    fetchLinks(searchQuery)
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value)
   }
 
-  // 处理对话框关闭，清除初始URL
+  const handleAddClick = async () => {
+    if (!user) {
+      router.push("/login")
+      return
+    }
+
+    setInitialUrl(await readClipboardAndValidate())
+    setAddDialogOpen(true)
+  }
+
   const handleDialogOpenChange = (open: boolean) => {
     setAddDialogOpen(open)
     if (!open) {
@@ -249,431 +258,356 @@ export default function Home() {
     }
   }
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value)
+  const handleTagClick = (tag: string) => {
+    setActiveTag(tag)
   }
 
-  // 处理回车键触发搜索
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setSearchQuery(search)
+  const handleEdit = (id: string) => {
+    const link = links.find(item => item.id === id)
+    if (link) {
+      setEditingLink(getLinkForEdit(link))
     }
   }
 
-  const handleTagClick = (tag: string) => {
-    setSearch(tag)
-    setSearchQuery(tag) // 点击标签时立即触发搜索
-  }
-
   const handleLogout = () => {
-    localStorage.removeItem('token')
+    localStorage.removeItem("token")
     setUser(null)
     toast.success("已退出登录")
   }
 
-  const handleLogin = () => {
-    router.push("/login")
-  }
-
   const handleDelete = async (linkId: string) => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem("token")
     if (!token) {
       toast.error("请先登录")
       return
     }
 
     try {
-      const res = await fetch(`/api/links?id=${linkId}`, {
+      const response = await fetch(`/api/links?id=${linkId}`, {
         method: "DELETE",
-        headers: {
-          "authorization": `Bearer ${token}`
-        }
+        headers: { "authorization": `Bearer ${token}` }
       })
+      const result = await response.json()
 
-      if (res.ok) {
-        toast.success("删除成功！")
-        // 重新获取数据
-        fetchLinks(searchQuery)
+      if (response.ok) {
+        toast.success("链接已删除")
+        fetchLinks()
       } else {
-        const data = await res.json()
-        toast.error(data.error || "删除失败")
+        toast.error(result.error || "删除失败")
       }
     } catch (error) {
-      console.error('删除失败:', error)
+      console.error("删除失败:", error)
       toast.error("网络错误，请稍后重试")
     }
   }
 
-  // 右键菜单处理函数
-  const handleContextMenu = (e: React.MouseEvent, linkId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    const menuWidth = 180
-    const menuHeight = 120
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-
-    let posX = e.clientX
-    let posY = e.clientY
-
-    if (posX + menuWidth > viewportWidth) {
-      posX = viewportWidth - menuWidth - 12
-    }
-    if (posY + menuHeight > viewportHeight) {
-      posY = viewportHeight - menuHeight - 12
-    }
-
-    posX = Math.max(12, posX)
-    posY = Math.max(12, posY)
-
-    setContextMenuPosition({ x: posX, y: posY })
-    setContextMenuLinkId(linkId)
-    setShowContextMenu(true)
-  }
-
-  // 重新分析链接
   const handleReanalyze = async (linkId: string) => {
-    setIsReanalyzing(true)
-    setShowContextMenu(false)
-    
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        console.error('未找到认证令牌')
-        return
-      }
+    const token = localStorage.getItem("token")
+    if (!token) {
+      toast.error("请先登录")
+      return
+    }
 
-      const response = await fetch('/api/links/reanalyze', {
-        method: 'POST',
+    try {
+      const response = await fetch("/api/links/reanalyze", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ linkId })
       })
+      const result = await response.json()
 
       if (response.ok) {
-        const result = await response.json()
-        console.log('重新分析成功:', result)
-        toast.success('重新分析成功')
-        // 重新获取数据
-        fetchLinks(searchQuery)
+        toast.success("重新分析完成")
+        fetchLinks()
       } else {
-        const error = await response.json()
-        console.error('重新分析失败:', error)
-        toast.error('重新分析失败: ' + (error.error || '未知错误'))
+        toast.error(result.error || "重新分析失败")
       }
     } catch (error) {
-      console.error('重新分析请求失败:', error)
-      toast.error('重新分析请求失败')
-    } finally {
-      setIsReanalyzing(false)
+      console.error("重新分析请求失败:", error)
+      toast.error("重新分析请求失败")
     }
   }
 
-  // 全局点击事件监听器来关闭右键菜单
-  useEffect(() => {
-    let contextMenuElement: Element | null = null
+  const clearFilters = () => {
+    setSearch("")
+    setSearchQuery("")
+    setActiveTag("")
+    setActiveCategory("")
+    setFilter("all")
+    setSort("created_desc")
+  }
 
-    const handleGlobalClick = (e: MouseEvent) => {
-      // 检查点击是否在右键菜单外部
-      if (contextMenuElement && !contextMenuElement.contains(e.target as Node)) {
-        setShowContextMenu(false)
-      }
-    }
-
-    const handleGlobalContextMenu = (e: MouseEvent) => {
-      // 检查是否点击在右键菜单内部
-      if (contextMenuElement && contextMenuElement.contains(e.target as Node)) {
-        return // 如果点击在菜单内部，不关闭菜单
-      }
-      
-      // 检查是否点击在 link-card 上
-      const linkCard = (e.target as Element)?.closest('[data-link-card]')
-      if (linkCard) {
-        return // 如果点击在 link-card 上，不关闭菜单，让 link-card 自己的处理函数处理
-      }
-      
-      // 在其他地方右键点击时关闭菜单
-      setShowContextMenu(false)
-    }
-
-    if (showContextMenu) {
-      // 缓存 DOM 元素引用，避免重复查询
-      contextMenuElement = document.querySelector('[data-context-menu]')
-      document.addEventListener('click', handleGlobalClick)
-      document.addEventListener('contextmenu', handleGlobalContextMenu)
-      return () => {
-        document.removeEventListener('click', handleGlobalClick)
-        document.removeEventListener('contextmenu', handleGlobalContextMenu)
-      }
-    }
-  }, [showContextMenu])
+  const hasActiveFilters = searchQuery || activeTag || activeCategory || filter !== "all" || sort !== "created_desc"
 
   return (
-    <main className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center px-2 py-12 relative transition-colors duration-200">
-      <Particles />
-      
-      {/* 右上角登录状态 */}
-      <div className="absolute top-4 right-4 z-20">
-        <div className="flex items-center gap-2 bg-white/70 dark:bg-gray-900/60 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-full px-3 py-1.5 shadow-sm transition-colors duration-200">
-          {user ? (
-            <>
-              <span className="text-sm text-gray-600 dark:text-gray-300">欢迎，{user.username}</span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout}
-                className="border-gray-200/50 dark:border-gray-600/50 text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200"
-              >
-                退出
-              </Button>
-            </>
-          ) : (
-            <Button 
-              onClick={handleLogin}
-              size="sm"
-              variant="ghost"
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-white/40 dark:hover:bg-gray-800/40 transition-all duration-200"
-            >
-              登录
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* 右下角功能按钮 */}
-      <div className="fixed bottom-4 right-4 z-20 flex flex-col gap-2">
-        <DarkModeToggle />
-      </div>
-
-      <div className="w-full max-w-2xl flex flex-col items-center mb-8 relative z-10">
-        <div className="flex w-full max-w-md gap-3 mb-4">
-          <div className="relative flex-1">
-            <Input
-              placeholder="搜索网址..."
-              value={search}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-              className="w-full bg-transparent !border-0 !border-b-2 !border-transparent focus:!ring-0 focus:!ring-offset-0 focus:outline-none !shadow-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus-visible:!shadow-none px-4 py-3 pr-10 text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 !rounded-none"
-            />
-            {/* 虚线动画效果 */}
-            <div className="absolute bottom-0 left-0 w-full h-px">
-              <div 
-                className={`h-full transition-all ${
-                  isSearchFocused 
-                    ? 'w-full duration-500 ease-out' 
-                    : 'w-0 duration-300 ease-in'
-                }`}
-                style={{
-                  backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 3px, #9ca3af 3px, #9ca3af 6px)',
-                  backgroundSize: '6px 1px',
-                  transformOrigin: 'left'
-                }}
-              ></div>
+    <main className="relative min-h-screen overflow-hidden text-slate-950 transition-colors duration-200 dark:text-slate-100">
+      <VisualBackdrop />
+      <header className="sticky top-0 z-30 border-b border-emerald-950/10 bg-[#edf1ea]/72 backdrop-blur-xl dark:border-emerald-100/10 dark:bg-[#06100f]/76">
+        <div className="relative mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 lg:px-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="hidden h-11 w-11 items-center justify-center rounded-md border border-emerald-950/10 bg-emerald-950 text-sm font-semibold text-[#f5f0df] shadow-sm sm:flex dark:border-emerald-100/10 dark:bg-[#d8cfaa] dark:text-emerald-950">
+                  AX
+                </div>
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">Axiss Nav</h1>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">个人导航工作台</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 lg:hidden">
+                <DarkModeToggle />
+                {user ? (
+                  <Button variant="outline" size="icon" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4" />
+                    <span className="sr-only">退出</span>
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="icon" onClick={() => router.push("/login")}>
+                    <LogIn className="h-4 w-4" />
+                    <span className="sr-only">登录</span>
+                  </Button>
+                )}
+              </div>
             </div>
-            {search && (
-              <button
-                onClick={() => {
-                  setSearch("")
-                  setSearchQuery("") // 清除搜索时也清除查询
-                }}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/50 rounded-full p-1.5 transition-all duration-200"
-                aria-label="清除搜索关键词"
-                type="button"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+
+            <div className="flex flex-1 flex-col gap-3 lg:max-w-3xl lg:flex-row lg:items-center">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={search}
+                  onChange={handleSearchChange}
+                  placeholder="搜索标题、网址、描述、标签"
+                  className="h-11 border-emerald-950/10 bg-white/70 pl-9 shadow-sm backdrop-blur dark:border-emerald-100/10 dark:bg-emerald-950/30"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-sm p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    aria-label="清除搜索"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="hidden items-center gap-2 lg:flex">
+                {user ? (
+                  <Button onClick={handleAddClick}>
+                    <Plus className="h-4 w-4" />
+                    添加链接
+                  </Button>
+                ) : (
+                  <Button onClick={() => router.push("/login")}>
+                    <LogIn className="h-4 w-4" />
+                    登录
+                  </Button>
+                )}
+                <DarkModeToggle />
+                {user && (
+                  <Button variant="outline" onClick={handleLogout}>
+                    <UserRound className="h-4 w-4" />
+                    {user.username}
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {filterOptions.map(option => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={filter === option.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter(option.value)}
+                  className="shrink-0 shadow-sm"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-slate-400" />
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortOption)}
+                className="h-9 rounded-md border border-emerald-950/10 bg-white/70 px-3 text-sm text-slate-700 shadow-sm outline-none backdrop-blur transition-colors focus:border-emerald-800/40 dark:border-emerald-100/10 dark:bg-emerald-950/30 dark:text-slate-200"
+                aria-label="排序方式"
+              >
+                {sortOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              {hasActiveFilters && (
+                <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+                  清除筛选
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-7 pb-24 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:pb-10">
+        <section className="min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {activeTag && (
+              <Badge variant="secondary" className="rounded-md">
+                标签：{activeTag}
+                <button type="button" onClick={() => setActiveTag("")} className="ml-1">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {searchQuery && (
+              <Badge variant="outline" className="rounded-md">
+                搜索：{searchQuery}
+              </Badge>
+            )}
+            {activeCategory && (
+              <Badge variant="outline" className="rounded-md">
+                分类：{activeCategory}
+                <button type="button" onClick={() => setActiveCategory("")} className="ml-1">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
             )}
           </div>
-          {user && (
-            <>
-              <Button 
-                className="group relative rounded-full w-10 h-10 p-0 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 hover:scale-105 active:scale-95 cursor-pointer overflow-hidden" 
-                size="sm"
-                onClick={handleAddClick}
-                aria-label="添加链接"
-              >
-                {/* 背景光效 */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                
-                {/* 加号图标 */}
-                <div className="relative z-10 flex items-center justify-center">
-                  <svg 
-                    className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2.5} 
-                      d="M12 4v16m8-8H4" 
-                    />
-                  </svg>
-                </div>
-                
-                {/* 工具提示 */}
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                  添加链接
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-                </div>
-              </Button>
-              <AddLinkDialog
-                open={addDialogOpen}
-                onOpenChange={handleDialogOpenChange}
-                initialUrl={initialUrl}
-                onSuccess={handleAddSuccess}
-              />
-            </>
-          )}
-        </div>
-        
-        {/* 随机标签 */}
-        {userLoading ? (
-          <RandomTagsSkeleton />
-        ) : (
-          <RandomTags
-            onTagClick={handleTagClick}
-          />
-        )}
-      </div>
-      
-      {/* 推荐网站 */}
-      <div className="w-full max-w-7xl relative z-10">
-        {userLoading ? (
-          <RecommendedLinksSkeleton />
-        ) : (
-          <RecommendedLinks />
-        )}
-      </div>
-      
-      <div className="w-full max-w-7xl relative z-10">
-        {userLoading ? (
-          <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <LinkCardSkeleton key={index} />
-            ))}
-          </div>
-        ) : loading ? (
-          <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <LinkCardSkeleton key={index} />
-            ))}
-          </div>
-        ) : links.length === 0 ? (
-          <div className="text-center text-gray-400 py-20 text-lg bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
-            暂无收藏网址
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {links.map((link: Link) => {
-                 return (
-                  <LinkCard
-                     key={link.id}
-                     id={link.id}
-                     title={link.title}
-                     url={link.url}
-                     description={link.description}
-                     icon={link.icon}
-                     tags={link.tags}
-                     onTagClick={handleTagClick}
-                     onDelete={handleDelete}
-                     isLoggedIn={!!user}
-                     onContextMenu={handleContextMenu}
-                   />
-                )
-              })}
+
+          {userLoading || loading ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 9 }).map((_, index) => (
+                <LinkCardSkeleton key={index} />
+              ))}
             </div>
-            {loadingMore && (
-              <div className="grid gap-4 p-4 backdrop-blur-sm rounded-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <LinkCardSkeleton key={`more-${index}`} />
+          ) : links.length === 0 ? (
+            <div className="axiss-panel flex min-h-[20rem] flex-col items-center justify-center rounded-lg border-dashed px-6 py-12 text-center">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">没有找到链接</h2>
+              <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
+                可以清除筛选条件，或添加一个新的收藏链接。
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={clearFilters}>清除筛选</Button>
+                )}
+                {user && (
+                  <Button onClick={handleAddClick}>
+                    <Plus className="h-4 w-4" />
+                    添加链接
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {links.map(link => (
+                  <LinkCard
+                    key={link.id}
+                    id={link.id}
+                    title={link.title}
+                    url={link.url}
+                    description={link.description}
+                    icon={link.icon}
+                    tags={link.tags}
+                    category={link.category}
+                    clickCount={link.clickCount}
+                    onTagClick={handleTagClick}
+                    onDelete={handleDelete}
+                    onEdit={handleEdit}
+                    onReanalyze={handleReanalyze}
+                    isLoggedIn={!!user}
+                  />
                 ))}
               </div>
-            )}
-            {!hasMore && links.length > 0 && (
-              <div className="text-center text-gray-400 py-8 text-lg">
-                已加载全部内容
-              </div>
-            )}
-          </>
-                 )}
-       </div>
 
-               {/* 自定义右键菜单 */}
-        {showContextMenu && user && contextMenuLinkId && (
-          <div
-            data-context-menu
-            className="fixed z-[9999] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200/60 dark:border-gray-600/60 rounded-xl shadow-2xl py-2 min-w-[140px] animate-in fade-in-0 zoom-in-95 duration-100"
-            style={{
-              left: contextMenuPosition.x,
-              top: contextMenuPosition.y
-            }}
-          >
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleReanalyze(contextMenuLinkId)
-              }}
-              disabled={isReanalyzing}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-150 group"
-            >
-              <span className="text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-300">
-                {isReanalyzing ? (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                )}
-              </span>
-              <span className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
-                {isReanalyzing ? '分析中...' : '重新分析'}
-              </span>
-            </button>
-            <div className="border-t border-gray-200/50 dark:border-gray-600/50 my-1" />
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setShowContextMenu(false)
-                handleDelete(contextMenuLinkId)
-              }}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors duration-150 group"
-            >
-              <span className="text-red-500 group-hover:text-red-600 dark:text-red-400 dark:group-hover:text-red-300">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </span>
-              <span className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
-                删除收藏
-              </span>
-            </button>
+              {loadingMore && (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <LinkCardSkeleton key={`more-${index}`} />
+                  ))}
+                </div>
+              )}
+
+              {!hasMore && (
+                <div className="py-6 text-center text-sm text-slate-400">已加载全部内容</div>
+              )}
+            </>
+          )}
+        </section>
+
+        <aside className="space-y-5 lg:sticky lg:top-36 lg:self-start">
+          <div className="axiss-panel rounded-lg p-4">
+            <RecommendedLinks />
           </div>
-        )}
-     </main>
-   )
- }
+          <div className="axiss-panel rounded-lg p-4">
+            <RandomTags onTagClick={handleTagClick} />
+          </div>
+          {categories.length > 0 && (
+            <section className="axiss-panel space-y-3 rounded-lg p-4">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-950 dark:text-slate-100">当前分类</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">来自当前结果</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {categories.map(category => (
+                  <Badge
+                    key={category}
+                    variant={activeCategory === category ? "default" : "outline"}
+                    className="cursor-pointer rounded-md"
+                    onClick={() => setActiveCategory(category)}
+                  >
+                    {category}
+                  </Badge>
+                ))}
+              </div>
+            </section>
+          )}
+        </aside>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-950/10 bg-[#eef1ea]/84 px-4 py-3 backdrop-blur-xl lg:hidden dark:border-emerald-100/10 dark:bg-[#06100f]/86">
+        <div className="mx-auto flex max-w-md items-center justify-around gap-2">
+          <Button variant="ghost" size="sm" onClick={() => document.querySelector<HTMLInputElement>("input[placeholder^='搜索']")?.focus()}>
+            <Search className="h-4 w-4" />
+            搜索
+          </Button>
+          <Button size="sm" onClick={handleAddClick}>
+            <Plus className="h-4 w-4" />
+            添加
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setFilter(filter === "all" ? "frequent" : "all")}>
+            <SlidersHorizontal className="h-4 w-4" />
+            筛选
+          </Button>
+        </div>
+      </div>
+
+      <AddLinkDialog
+        open={addDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        initialUrl={initialUrl}
+        onSuccess={fetchLinks}
+      />
+
+      <AddLinkDialog
+        open={!!editingLink}
+        onOpenChange={(open) => {
+          if (!open) setEditingLink(null)
+        }}
+        mode="edit"
+        link={editingLink}
+        onSuccess={fetchLinks}
+      />
+    </main>
+  )
+}
