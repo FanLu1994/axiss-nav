@@ -636,7 +636,7 @@ export function HomePageClient({
                   <span className="sr-only">GitHub 仓库</span>
                 </a>
               </Button>
-              {user ? (
+              {user && (
                 <>
                   <Button
                     variant="outline"
@@ -660,17 +660,12 @@ export function HomePageClient({
                     />
                     分析待整理
                   </Button>
-                  <Button className="axiss-action-lift" onClick={handleAddClick}>
-                    <BookmarkPlus className="h-4 w-4" />
-                    收藏链接
-                  </Button>
                 </>
-              ) : (
-                <Button className="axiss-action-lift" onClick={() => router.push("/login")}>
-                  <LogIn className="h-4 w-4" />
-                  登录管理
-                </Button>
               )}
+              <Button className="axiss-action-lift" onClick={handleAddClick}>
+                <BookmarkPlus className="h-4 w-4" />
+                收藏链接
+              </Button>
               <DarkModeToggle />
               {user && (
                 <Button variant="outline" className="axiss-action-lift" onClick={handleLogout}>
@@ -815,12 +810,10 @@ export function HomePageClient({
                     清除条件
                   </Button>
                 )}
-                {user && (
-                  <Button className="axiss-action-lift" onClick={handleAddClick}>
-                    <Plus className="h-4 w-4" />
-                    收藏链接
-                  </Button>
-                )}
+                <Button className="axiss-action-lift" onClick={handleAddClick}>
+                  <Plus className="h-4 w-4" />
+                  收藏链接
+                </Button>
               </div>
             </div>
           ) : (
