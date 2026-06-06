@@ -1,132 +1,124 @@
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('开始种子数据...')
-
-  // 创建管理员用户
-  const adminPassword = await bcrypt.hash('admin123', 10)
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      email: 'admin@example.com',
-      username: 'admin',
-      password: adminPassword,
-      role: 'ADMIN'
-    }
-  })
-
-  // 创建测试用户
-  const userPassword = await bcrypt.hash('user123', 10)
-  const user = await prisma.user.upsert({
-    where: { email: 'user@example.com' },
-    update: {},
-    create: {
-      email: 'user@example.com',
-      username: 'user',
-      password: userPassword,
-      role: 'USER'
-    }
-  })
+  console.log("开始种子数据...");
 
   // 创建示例链接
   const links = [
     {
-      title: 'GitHub',
-      url: 'https://github.com',
-      description: '全球最大的代码托管平台',
-      icon: 'https://github.com/favicon.ico',
-      tags: JSON.stringify(['开发', '代码', '开源']),
-      category: '开发',
-      color: '#24292e',
+      title: "GitHub",
+      url: "https://github.com",
+      description: "全球最大的代码托管平台",
+      icon: "https://github.com/favicon.ico",
+      tags: JSON.stringify(["开发", "代码", "开源"]),
+      category: "开发",
+      color: "#24292e",
       order: 1,
       isActive: true,
-      clickCount: 0
+      clickCount: 0,
+      analysisStatus: "COMPLETED" as const,
+      lastAnalyzedAt: new Date(),
+      lastCheckedAt: new Date(),
+      isAvailable: true,
     },
     {
-      title: 'Stack Overflow',
-      url: 'https://stackoverflow.com',
-      description: '程序员问答社区',
-      icon: 'https://stackoverflow.com/favicon.ico',
-      tags: JSON.stringify(['问答', '编程', '技术']),
-      category: '技术',
-      color: '#f48024',
+      title: "Stack Overflow",
+      url: "https://stackoverflow.com",
+      description: "程序员问答社区",
+      icon: "https://stackoverflow.com/favicon.ico",
+      tags: JSON.stringify(["问答", "编程", "技术"]),
+      category: "技术",
+      color: "#f48024",
       order: 2,
       isActive: true,
-      clickCount: 0
+      clickCount: 0,
+      analysisStatus: "COMPLETED" as const,
+      lastAnalyzedAt: new Date(),
+      lastCheckedAt: new Date(),
+      isAvailable: true,
     },
     {
-      title: 'MDN Web Docs',
-      url: 'https://developer.mozilla.org',
-      description: 'Web开发文档',
-      icon: 'https://developer.mozilla.org/favicon.ico',
-      tags: JSON.stringify(['文档', 'Web', '开发']),
-      category: '开发',
-      color: '#000000',
+      title: "MDN Web Docs",
+      url: "https://developer.mozilla.org",
+      description: "Web开发文档",
+      icon: "https://developer.mozilla.org/favicon.ico",
+      tags: JSON.stringify(["文档", "Web", "开发"]),
+      category: "开发",
+      color: "#000000",
       order: 3,
       isActive: true,
-      clickCount: 0
+      clickCount: 0,
+      analysisStatus: "COMPLETED" as const,
+      lastAnalyzedAt: new Date(),
+      lastCheckedAt: new Date(),
+      isAvailable: true,
     },
     {
-      title: 'React',
-      url: 'https://react.dev',
-      description: 'React官方文档',
-      icon: 'https://react.dev/favicon.ico',
-      tags: JSON.stringify(['React', '前端', '框架']),
-      category: '前端',
-      color: '#61dafb',
+      title: "React",
+      url: "https://react.dev",
+      description: "React官方文档",
+      icon: "https://react.dev/favicon.ico",
+      tags: JSON.stringify(["React", "前端", "框架"]),
+      category: "前端",
+      color: "#61dafb",
       order: 4,
       isActive: true,
-      clickCount: 0
+      clickCount: 0,
+      analysisStatus: "COMPLETED" as const,
+      lastAnalyzedAt: new Date(),
+      lastCheckedAt: new Date(),
+      isAvailable: true,
     },
     {
-      title: 'Vue.js',
-      url: 'https://vuejs.org',
-      description: 'Vue.js官方文档',
-      icon: 'https://vuejs.org/favicon.ico',
-      tags: JSON.stringify(['Vue', '前端', '框架']),
-      category: '前端',
-      color: '#42b883',
+      title: "Vue.js",
+      url: "https://vuejs.org",
+      description: "Vue.js官方文档",
+      icon: "https://vuejs.org/favicon.ico",
+      tags: JSON.stringify(["Vue", "前端", "框架"]),
+      category: "前端",
+      color: "#42b883",
       order: 5,
       isActive: true,
-      clickCount: 0
-    }
-  ]
+      clickCount: 0,
+      analysisStatus: "COMPLETED" as const,
+      lastAnalyzedAt: new Date(),
+      lastCheckedAt: new Date(),
+      isAvailable: true,
+    },
+  ];
 
   for (const linkData of links) {
     // 检查链接是否已存在
     const existingLink = await prisma.link.findUnique({
-      where: { url: linkData.url }
-    })
-    
+      where: { url: linkData.url },
+    });
+
     if (existingLink) {
       // 如果存在，更新链接
       await prisma.link.update({
         where: { id: existingLink.id },
-        data: linkData
-      })
+        data: linkData,
+      });
     } else {
       // 如果不存在，创建新链接
       await prisma.link.create({
-        data: linkData
-      })
+        data: linkData,
+      });
     }
   }
 
-  console.log('种子数据创建完成！')
-  console.log(`管理员用户: ${admin.email}`)
-  console.log(`测试用户: ${user.email}`)
-  console.log(`示例链接: ${links.length} 个`)
+  console.log("种子数据创建完成！");
+  console.log("管理员账户请通过环境变量配置。");
+  console.log(`示例链接: ${links.length} 个`);
 }
 
 main()
   .catch((e) => {
-    console.error('种子数据创建失败:', e)
-    process.exit(1)
+    console.error("种子数据创建失败:", e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  }) 
+    await prisma.$disconnect();
+  });

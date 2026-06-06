@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
 interface VisualBackdropProps {
-  variant?: "app" | "auth"
+  variant?: "app" | "auth";
 }
 
 export function VisualBackdrop({ variant = "app" }: VisualBackdropProps) {
@@ -12,5 +12,5 @@ export function VisualBackdrop({ variant = "app" }: VisualBackdropProps) {
       <div className="axiss-beam-field" />
       <div className="axiss-noise-field" />
     </div>
-  )
+  );
 }

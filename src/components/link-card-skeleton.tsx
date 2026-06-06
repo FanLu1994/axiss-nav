@@ -1,48 +1,31 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function LinkCardSkeleton() {
   return (
-    <Card className="w-full min-h-[9.5rem]">
-      <CardContent className="p-4 h-full">
-        <div className="flex items-start justify-between h-full">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* 左侧图标占位 */}
-            <div className="flex-shrink-0">
-              <Skeleton className="w-12 h-12 rounded" />
-            </div>
-
-            {/* 右侧内容占位 */}
-            <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
-              <div>
-                {/* 标题占位 */}
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                
-                {/* 描述占位 */}
-                <div className="space-y-1 mb-2">
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
-              </div>
-
-              {/* 底部标签和按钮占位 */}
-              <div className="flex items-center justify-between">
-                {/* 标签占位 */}
-                <div className="flex gap-1">
-                  <Skeleton className="h-5 w-12 rounded-full" />
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                </div>
-
-                {/* 按钮占位 */}
-                <div className="flex items-center gap-1 ml-2">
-                  <Skeleton className="h-6 w-6 rounded" />
-                  <Skeleton className="h-6 w-6 rounded" />
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="axiss-panel min-h-[11rem] rounded-lg p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="h-11 w-11 shrink-0 rounded-lg" />
+        <div className="min-w-0 flex-1">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="mt-2 h-3 w-1/2" />
         </div>
-      </CardContent>
-    </Card>
-  )
+        <Skeleton className="h-8 w-8 rounded-md" />
+      </div>
+      <div className="mt-4 space-y-2">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-2/3" />
+      </div>
+      <div className="mt-5 flex items-center gap-2">
+        <Skeleton className="h-6 w-20 rounded-md" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <div className="flex gap-1.5">
+          <Skeleton className="h-5 w-12 rounded-md" />
+          <Skeleton className="h-5 w-16 rounded-md" />
+        </div>
+        <Skeleton className="h-4 w-4 rounded" />
+      </div>
+    </div>
+  );
 }

@@ -8,7 +8,7 @@ export class PerformanceDashboard {
     cacheHits: 0,
     cacheMisses: 0,
     dbQueryTime: 0,
-    errors: 0
+    errors: 0,
   };
 
   private requestTimes: number[] = [];
@@ -24,7 +24,7 @@ export class PerformanceDashboard {
   recordRequest(duration: number, isSlow: boolean = false) {
     this.metrics.totalRequests++;
     this.requestTimes.push(duration);
-    
+
     if (isSlow) {
       this.metrics.slowRequests++;
     }
@@ -55,7 +55,7 @@ export class PerformanceDashboard {
 
   private updateAverageResponseTime() {
     if (this.requestTimes.length > 0) {
-      this.metrics.averageResponseTime = 
+      this.metrics.averageResponseTime =
         this.requestTimes.reduce((sum, time) => sum + time, 0) / this.requestTimes.length;
     }
   }
@@ -63,17 +63,22 @@ export class PerformanceDashboard {
   getMetrics() {
     return {
       ...this.metrics,
-      cacheHitRate: this.metrics.cacheHits + this.metrics.cacheMisses > 0 
-        ? (this.metrics.cacheHits / (this.metrics.cacheHits + this.metrics.cacheMisses) * 100).toFixed(2) + '%'
-        : '0%',
-      slowRequestRate: this.metrics.totalRequests > 0
-        ? (this.metrics.slowRequests / this.metrics.totalRequests * 100).toFixed(2) + '%'
-        : '0%'
+      cacheHitRate:
+        this.metrics.cacheHits + this.metrics.cacheMisses > 0
+          ? (
+              (this.metrics.cacheHits / (this.metrics.cacheHits + this.metrics.cacheMisses)) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
+      slowRequestRate:
+        this.metrics.totalRequests > 0
+          ? ((this.metrics.slowRequests / this.metrics.totalRequests) * 100).toFixed(2) + "%"
+          : "0%",
     };
   }
 
   getSlowQueries() {
-    return this.requestTimes.filter(time => time > this.slowQueryThreshold);
+    return this.requestTimes.filter((time) => time > this.slowQueryThreshold);
   }
 
   reset() {
@@ -84,7 +89,7 @@ export class PerformanceDashboard {
       cacheHits: 0,
       cacheMisses: 0,
       dbQueryTime: 0,
-      errors: 0
+      errors: 0,
     };
     this.requestTimes = [];
   }
@@ -93,7 +98,7 @@ export class PerformanceDashboard {
   generateReport(): string {
     const metrics = this.getMetrics();
     const slowQueries = this.getSlowQueries();
-    
+
     return `
 📊 性能监控报告
 ================
@@ -124,7 +129,8 @@ export class PerformanceDashboard {
 export const dashboard = PerformanceDashboard.getInstance();
 
 // 定期输出性能报告
-if (typeof window === 'undefined') { // 只在服务器端运行
+if (typeof window === "undefined") {
+  // 只在服务器端运行
   setInterval(() => {
     console.log(dashboard.generateReport());
   }, 300000); // 每5分钟输出一次报告

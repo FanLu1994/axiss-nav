@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 
 interface ResponsiveConfig {
-  xs: number  // < 640px
-  sm: number  // >= 640px
-  md: number  // >= 768px
-  lg: number  // >= 1024px
-  xl: number  // >= 1280px
+  xs: number; // < 640px
+  sm: number; // >= 640px
+  md: number; // >= 768px
+  lg: number; // >= 1024px
+  xl: number; // >= 1280px
 }
 
 const defaultConfig: ResponsiveConfig = {
@@ -16,35 +16,35 @@ const defaultConfig: ResponsiveConfig = {
   md: 3,
   lg: 4,
   xl: 5,
-}
+};
 
 export function useResponsiveColumns(config: Partial<ResponsiveConfig> = {}) {
-  const [columns, setColumns] = useState(1)
+  const [columns, setColumns] = useState(1);
 
   useEffect(() => {
-    const finalConfig = { ...defaultConfig, ...config }
-    
+    const finalConfig = { ...defaultConfig, ...config };
+
     const updateColumns = () => {
-      const width = window.innerWidth
-      
+      const width = window.innerWidth;
+
       if (width >= 1280) {
-        setColumns(finalConfig.xl)
+        setColumns(finalConfig.xl);
       } else if (width >= 1024) {
-        setColumns(finalConfig.lg)
+        setColumns(finalConfig.lg);
       } else if (width >= 768) {
-        setColumns(finalConfig.md)
+        setColumns(finalConfig.md);
       } else if (width >= 640) {
-        setColumns(finalConfig.sm)
+        setColumns(finalConfig.sm);
       } else {
-        setColumns(finalConfig.xs)
+        setColumns(finalConfig.xs);
       }
-    }
+    };
 
-    updateColumns()
-    
-    window.addEventListener('resize', updateColumns)
-    return () => window.removeEventListener('resize', updateColumns)
-  }, [config])
+    updateColumns();
 
-  return columns
-} 
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  }, [config]);
+
+  return columns;
+}

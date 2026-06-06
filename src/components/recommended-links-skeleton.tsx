@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function RecommendedLinksSkeleton() {
   return (
@@ -13,7 +13,7 @@ export function RecommendedLinksSkeleton() {
           <div className="w-8 h-px bg-gradient-to-l from-transparent to-gray-200"></div>
         </div>
       </div>
-      
+
       {/* 链接列表 skeleton */}
       <div className="flex flex-wrap justify-center gap-4">
         {Array.from({ length: 6 }).map((_, index) => (
@@ -24,5 +24,5 @@ export function RecommendedLinksSkeleton() {
         ))}
       </div>
     </div>
-  )
+  );
 }

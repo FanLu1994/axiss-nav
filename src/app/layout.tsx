@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner"
-import { DarkModeProvider } from "@/components/dark-mode-provider"
+import { Toaster } from "@/components/ui/sonner";
+import { DarkModeProvider } from "@/components/dark-mode-provider";
 
 export const metadata: Metadata = {
-  title: "Axiss的导航站",
-  description: "你的专属网址导航站"
+  title: "Axiss Nav",
+  description: "安静、清晰、适合高频使用的个人导航工作台。",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
