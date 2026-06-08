@@ -204,7 +204,6 @@
       linear-gradient(35deg, transparent 0 24%, rgba(255, 255, 255, 0.38) 34%, transparent 44% 100%);
     filter: blur(34px);
     transform: translate3d(-2%, -1%, 0);
-    animation: axiss-light-shift 18s ease-in-out infinite alternate;
   }
 
   .dark .axiss-light-field {
@@ -231,7 +230,6 @@
     background-size: 56px 56px;
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
     transform-origin: center;
-    animation: axiss-grid-drift 28s linear infinite;
   }
 
   .dark .axiss-grid-field {
@@ -259,7 +257,6 @@
         transparent 153px 250px
       );
     transform: translate3d(0, 0, 0);
-    animation: axiss-beam-slide 22s ease-in-out infinite alternate;
   }
 
   .dark .axiss-beam-field {
@@ -334,6 +331,8 @@
   }
 
   .axiss-brand-mark {
+    --axiss-brand-sheen-opacity: 0;
+    --axiss-brand-sheen-x: -82%;
     display: inline-grid;
     place-items: center;
     position: relative;
@@ -351,8 +350,8 @@
     position: absolute;
     inset: -35% -80%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
-    transform: translateX(-75%) rotate(18deg);
-    animation: axiss-mark-sheen 6.8s ease-in-out infinite;
+    opacity: var(--axiss-brand-sheen-opacity);
+    transform: translateX(var(--axiss-brand-sheen-x)) rotate(18deg);
     pointer-events: none;
   }
 
@@ -395,30 +394,7 @@
     box-shadow: 0 0 0 3px rgba(120, 214, 198, 0.2);
   }
 
-  .axiss-motion-shell {
-    animation: axiss-page-rise 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-
-  .axiss-gsap-enabled .axiss-motion-shell,
-  .axiss-gsap-enabled .axiss-motion-header,
-  .axiss-gsap-enabled .axiss-motion-fade-up,
-  .axiss-gsap-enabled .axiss-motion-stat,
-  .axiss-gsap-enabled .axiss-motion-card,
-  .axiss-gsap-enabled .axiss-motion-side,
-  .axiss-gsap-enabled .axiss-motion-bottom {
-    animation: none;
-  }
-
-  .axiss-motion-header {
-    animation: axiss-slide-down 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-
-  .axiss-motion-fade-up {
-    animation: axiss-fade-up 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-
   .axiss-motion-stat {
-    animation: axiss-fade-up 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     transition:
       transform 220ms ease,
       background-color 220ms ease,
@@ -439,16 +415,7 @@
   }
 
   .axiss-motion-card {
-    animation: axiss-card-enter 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     will-change: transform, opacity;
-  }
-
-  .axiss-motion-side {
-    animation: axiss-side-enter 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-
-  .axiss-motion-bottom {
-    animation: axiss-bottom-dock 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .axiss-action-lift {
@@ -525,11 +492,11 @@
   }
 
   .axiss-highlight-pulse {
-    animation: axiss-highlight-pulse 1.3s ease-in-out 2;
+    will-change: box-shadow;
   }
 
   .axiss-status-breathe {
-    animation: axiss-status-breathe 2.8s ease-in-out infinite;
+    will-change: transform;
   }
 
   .axiss-surface-row {
@@ -548,141 +515,12 @@
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
   }
 
-  @keyframes axiss-light-shift {
-    from {
-      transform: translate3d(-3%, -2%, 0) rotate(-1deg);
-    }
-    to {
-      transform: translate3d(3%, 2%, 0) rotate(1deg);
-    }
-  }
-
-  @keyframes axiss-grid-drift {
-    from {
-      background-position:
-        0 0,
-        0 0;
-    }
-    to {
-      background-position:
-        88px 44px,
-        88px 44px;
-    }
-  }
-
-  @keyframes axiss-beam-slide {
-    from {
-      transform: translate3d(-2%, 0, 0);
-    }
-    to {
-      transform: translate3d(2%, -1%, 0);
-    }
-  }
-
-  @keyframes axiss-mark-sheen {
-    0%,
-    58% {
-      transform: translateX(-78%) rotate(18deg);
-      opacity: 0;
-    }
-    68% {
-      opacity: 0.75;
-    }
-    82%,
-    100% {
-      transform: translateX(78%) rotate(18deg);
-      opacity: 0;
-    }
-  }
-
-  @keyframes axiss-page-rise {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes axiss-slide-down {
-    from {
-      opacity: 0;
-      transform: translateY(-14px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes axiss-fade-up {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes axiss-card-enter {
-    from {
-      opacity: 0;
-      transform: translateY(18px) scale(0.985);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes axiss-side-enter {
-    from {
-      opacity: 0;
-      transform: translateX(16px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes axiss-bottom-dock {
-    from {
-      opacity: 0;
-      transform: translateY(18px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes axiss-highlight-pulse {
-    0%,
-    100% {
-      box-shadow:
-        0 0 0 0 rgba(45, 111, 104, 0),
-        0 20px 54px rgba(31, 43, 50, 0.12);
-    }
-    42% {
-      box-shadow:
-        0 0 0 7px rgba(45, 111, 104, 0.12),
-        0 24px 62px rgba(31, 43, 50, 0.16);
-    }
-  }
-
-  @keyframes axiss-status-breathe {
-    0%,
-    100% {
-      transform: translateZ(0);
-    }
-    50% {
-      transform: translateY(-1px);
-    }
+  .axiss-gsap-enabled .axiss-motion-stat:hover,
+  .axiss-gsap-enabled .axiss-action-lift:hover,
+  .axiss-gsap-enabled .axiss-action-lift:active,
+  .axiss-gsap-enabled .group:hover .axiss-icon-drift,
+  .axiss-gsap-enabled .axiss-surface-row:hover {
+    transform: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
