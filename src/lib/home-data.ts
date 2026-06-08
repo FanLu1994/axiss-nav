@@ -37,6 +37,17 @@ function getStableScoreSeed(value: string): number {
   return hash / 50;
 }
 
+function shuffleLinks<T>(items: T[]): T[] {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
 function parseTagsWithIcons(
   tagsString: string,
   useRandomEmoji = false
@@ -122,58 +133,81 @@ export async function getInitialLinks(
 }
 
 export async function getRecommendedLinks(limit = 7): Promise<RecommendedLinkItem[]> {
-  return withCache(
-    `home:recommended:${limit}`,
-    async () => {
-      const links = await prisma.link.findMany({
-        where: { isActive: true },
-        select: {
-          id: true,
-          title: true,
-          url: true,
-          icon: true,
-          clickCount: true,
-          createdAt: true,
-        },
-        orderBy: [{ clickCount: "asc" }, { createdAt: "asc" }, { id: "asc" }],
-        take: Math.max(limit * 8, 56),
-      });
+  const loadRecommendedLinks = async () => {
+    const links = await prisma.link.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        icon: true,
+        clickCount: true,
+        createdAt: true,
+      },
+      orderBy: [{ clickCount: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      take: Math.max(limit * 8, 56),
+    });
 
-      if (links.length === 0) {
-        return [];
-      }
+    if (links.length === 0) {
+      return [];
+    }
 
-      const now = Date.now();
+    const now = Date.now();
 
-      return links
-        .map((link) => {
-          const createdTime = new Date(link.createdAt).getTime();
-          const daysSinceCreated = (now - createdTime) / (1000 * 60 * 60 * 24);
-          const clickScore = Math.max(0, 100 - link.clickCount * 5);
-          const ageScore = Math.min(50, daysSinceCreated * 2);
-          const stableScore = getStableScoreSeed(link.id);
+    return links
+      .map((link) => {
+        const createdTime = new Date(link.createdAt).getTime();
+        const daysSinceCreated = (now - createdTime) / (1000 * 60 * 60 * 24);
+        const clickScore = Math.max(0, 100 - link.clickCount * 5);
+        const ageScore = Math.min(50, daysSinceCreated * 2);
+        const stableScore = getStableScoreSeed(link.id);
 
-          return {
-            id: link.id,
-            title: link.title,
-            url: link.url,
-            icon: link.icon ?? undefined,
-            clickCount: link.clickCount,
-            score: clickScore + ageScore + stableScore,
-          };
-        })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit)
-        .map((link) => ({
+        return {
           id: link.id,
           title: link.title,
           url: link.url,
-          icon: link.icon,
+          icon: link.icon ?? undefined,
           clickCount: link.clickCount,
-        }));
+          score: clickScore + ageScore + stableScore,
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((link) => ({
+        id: link.id,
+        title: link.title,
+        url: link.url,
+        icon: link.icon,
+        clickCount: link.clickCount,
+      }));
+  };
+
+  return withCache(`home:recommended:${limit}`, loadRecommendedLinks, 5 * 60 * 1000);
+}
+
+export async function getFreshRecommendedLinks(limit = 7): Promise<RecommendedLinkItem[]> {
+  const links = await prisma.link.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      title: true,
+      url: true,
+      icon: true,
+      clickCount: true,
     },
-    5 * 60 * 1000
-  );
+    orderBy: [{ clickCount: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    take: Math.max(limit * 8, 56),
+  });
+
+  return shuffleLinks(links)
+    .slice(0, limit)
+    .map((link) => ({
+      id: link.id,
+      title: link.title,
+      url: link.url,
+      icon: link.icon ?? undefined,
+      clickCount: link.clickCount,
+    }));
 }
 
 export async function getRandomTags(limit = 7, useRandomEmoji = false): Promise<TagItem[]> {

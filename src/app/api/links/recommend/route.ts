@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { getRecommendedLinks } from "@/lib/home-data";
+import { getFreshRecommendedLinks } from "@/lib/home-data";
 
 export async function GET() {
   try {
-    const recommendedLinks = await getRecommendedLinks();
+    const recommendedLinks = await getFreshRecommendedLinks();
     const response = NextResponse.json({
       data: recommendedLinks,
       message: recommendedLinks.length > 0 ? "推荐链接获取成功" : "暂无推荐链接",
     });
 
-    response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600");
+    response.headers.set("Cache-Control", "no-store");
 
     return response;
   } catch (error) {
