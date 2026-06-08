@@ -399,6 +399,16 @@
     animation: axiss-page-rise 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  .axiss-gsap-enabled .axiss-motion-shell,
+  .axiss-gsap-enabled .axiss-motion-header,
+  .axiss-gsap-enabled .axiss-motion-fade-up,
+  .axiss-gsap-enabled .axiss-motion-stat,
+  .axiss-gsap-enabled .axiss-motion-card,
+  .axiss-gsap-enabled .axiss-motion-side,
+  .axiss-gsap-enabled .axiss-motion-bottom {
+    animation: none;
+  }
+
   .axiss-motion-header {
     animation: axiss-slide-down 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }

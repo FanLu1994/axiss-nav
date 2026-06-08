@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { DarkModeProvider } from "@/components/dark-mode-provider";
+import { MotionProvider } from "@/components/motion-provider";
 
 export const metadata: Metadata = {
   title: "Axiss Nav",
@@ -20,8 +21,10 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased">
         <DarkModeProvider>
-          <Toaster position="top-center" />
-          {children}
+          <MotionProvider>
+            <Toaster position="top-center" />
+            {children}
+          </MotionProvider>
         </DarkModeProvider>
       </body>
     </html>

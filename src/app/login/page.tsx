@@ -56,12 +56,12 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden px-4 py-6 text-slate-950 dark:text-slate-100">
+    <main className="axiss-motion-shell relative min-h-[100dvh] overflow-hidden px-4 py-6 text-slate-950 dark:text-slate-100">
       <VisualBackdrop variant="auth" />
-      <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-4">
+      <div className="axiss-motion-header relative mx-auto flex max-w-5xl items-center justify-between gap-4">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-slate-600 transition-colors hover:text-slate-950 dark:text-slate-300 dark:hover:text-slate-100"
+          className="axiss-action-lift inline-flex items-center gap-2 text-sm text-slate-600 transition-colors hover:text-slate-950 dark:text-slate-300 dark:hover:text-slate-100"
         >
           <ArrowLeft className="h-4 w-4" />
           返回工作台
@@ -70,7 +70,7 @@ export default function LoginPage() {
       </div>
 
       <section className="relative mx-auto grid min-h-[calc(100dvh-5rem)] max-w-5xl items-center gap-10 py-8 lg:grid-cols-[1fr_25rem]">
-        <div className="hidden lg:block">
+        <div className="axiss-motion-fade-up hidden lg:block">
           <div className="axiss-brand-mark mb-8 flex h-14 w-14 items-center justify-center rounded-lg text-base font-semibold">
             <Image
               src="/favicon.ico"
@@ -109,7 +109,7 @@ export default function LoginPage() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="axiss-surface-row flex items-start gap-3 rounded-lg px-4 py-3"
+                className="axiss-motion-fade-up axiss-surface-row flex items-start gap-3 rounded-lg px-4 py-3"
               >
                 <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
                   <item.icon className="h-4 w-4" />
@@ -127,7 +127,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="axiss-panel rounded-lg p-6">
+        <div className="axiss-motion-side axiss-panel rounded-lg p-6">
           <div className="mb-6">
             <h2 className="text-xl font-semibold">登录</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -164,7 +164,7 @@ export default function LoginPage() {
                 className="h-10 bg-white/66 dark:bg-white/7"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="axiss-action-lift w-full" disabled={loading}>
               {loading ? "登录中..." : "登录"}
             </Button>
           </form>
