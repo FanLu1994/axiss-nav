@@ -126,10 +126,8 @@ export function MotionProvider({ children }: { children: ReactNode }) {
         intro.from(shell, {
           autoAlpha: 0,
           y: 24,
-          scale: 0.985,
-          filter: "blur(12px)",
           duration: 0.95,
-          clearProps: "filter,visibility",
+          clearProps: "transform,visibility",
         });
       }
       if (header) {
@@ -138,9 +136,8 @@ export function MotionProvider({ children }: { children: ReactNode }) {
           {
             autoAlpha: 0,
             y: -42,
-            filter: "blur(10px)",
             duration: 0.82,
-            clearProps: "filter,visibility",
+            clearProps: "transform,visibility",
           },
           0.08
         );
@@ -203,7 +200,6 @@ export function MotionProvider({ children }: { children: ReactNode }) {
           const isCard = element.matches(cardSelector);
           const isSide = element.classList.contains("axiss-motion-side");
           const isBottom = element.classList.contains("axiss-motion-bottom");
-          const isStat = element.classList.contains("axiss-motion-stat");
 
           const trigger = ScrollTrigger.create({
             trigger: element,
@@ -216,23 +212,16 @@ export function MotionProvider({ children }: { children: ReactNode }) {
                   autoAlpha: 0,
                   x: isSide ? 42 : 0,
                   y: isBottom ? 38 : isCard ? 56 : 30,
-                  scale: isCard ? 0.94 : isStat ? 0.96 : 0.98,
-                  rotationX: isCard ? 7 : 0,
-                  transformPerspective: isCard ? 800 : 0,
-                  filter: isCard ? "blur(14px)" : "blur(10px)",
                 },
                 {
                   autoAlpha: 1,
                   x: 0,
                   y: 0,
-                  scale: 1,
-                  rotationX: 0,
-                  filter: "blur(0px)",
                   delay: Math.min(index % 9, 8) * (isCard ? 0.055 : 0.045),
                   duration: isCard ? 0.9 : 0.78,
                   ease: isCard ? "back.out(1.18)" : "expo.out",
                   overwrite: "auto",
-                  clearProps: "filter,visibility,transformPerspective",
+                  clearProps: "transform,visibility",
                 }
               );
             },
@@ -333,11 +322,10 @@ export function MotionProvider({ children }: { children: ReactNode }) {
         const isCard = element.classList.contains("axiss-motion-card");
         gsap.to(element, {
           y: isCard ? -7 : -3,
-          scale: 1.025,
-          rotationX: isCard ? -1.5 : 0,
           duration: 0.28,
           ease: "power3.out",
           overwrite: "auto",
+          force3D: false,
         });
 
         const icon = element.querySelector(".axiss-icon-drift");
@@ -359,11 +347,10 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
         gsap.to(element, {
           y: 0,
-          scale: 1,
-          rotationX: 0,
           duration: 0.32,
           ease: "power3.out",
           overwrite: "auto",
+          force3D: false,
           clearProps: "transform",
         });
 
@@ -381,21 +368,8 @@ export function MotionProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      const onPointerDown = (event: PointerEvent) => {
-        const element = getInteractiveTarget(event);
-        if (!element) return;
-
-        gsap.to(element, {
-          scale: 0.96,
-          duration: 0.1,
-          ease: "power2.out",
-          overwrite: "auto",
-        });
-      };
-
       root.addEventListener("pointerover", onPointerOver);
       root.addEventListener("pointerout", onPointerOut);
-      root.addEventListener("pointerdown", onPointerDown);
       root.addEventListener("pointerup", onPointerOver);
 
       ScrollTrigger.refresh();
@@ -404,7 +378,6 @@ export function MotionProvider({ children }: { children: ReactNode }) {
         observer.disconnect();
         root.removeEventListener("pointerover", onPointerOver);
         root.removeEventListener("pointerout", onPointerOut);
-        root.removeEventListener("pointerdown", onPointerDown);
         root.removeEventListener("pointerup", onPointerOver);
         revealTriggers.forEach((trigger) => trigger.kill());
         revealTargets.forEach((element) => {

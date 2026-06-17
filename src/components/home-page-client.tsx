@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -163,6 +164,7 @@ export function HomePageClient({
   const [initialUrl, setInitialUrl] = useState("");
   const [highlightedLinkId, setHighlightedLinkId] = useState("");
   const [bulkAction, setBulkAction] = useState<"refresh" | "untidy" | null>(null);
+  const [pendingBulkAction, setPendingBulkAction] = useState<"refresh" | "untidy" | null>(null);
   const didHydrateInitialLinks = useRef(false);
   const router = useRouter();
 
@@ -641,7 +643,7 @@ export function HomePageClient({
                   <Button
                     variant="outline"
                     className="axiss-action-lift"
-                    onClick={() => handleBulkAnalyze("refresh")}
+                    onClick={() => setPendingBulkAction("refresh")}
                     disabled={bulkAction !== null}
                   >
                     <RefreshCw
@@ -652,7 +654,7 @@ export function HomePageClient({
                   <Button
                     variant="outline"
                     className="axiss-action-lift"
-                    onClick={() => handleBulkAnalyze("untidy")}
+                    onClick={() => setPendingBulkAction("untidy")}
                     disabled={bulkAction !== null}
                   >
                     <Sparkles
@@ -734,7 +736,7 @@ export function HomePageClient({
 
       <div className="relative mx-auto grid max-w-[1400px] gap-6 px-4 py-6 pb-24 lg:grid-cols-[minmax(0,1fr)_21rem] lg:px-6 lg:pb-10">
         <section className="min-w-0 space-y-5">
-          <section className="axiss-motion-fade-up axiss-shimmer-edge overflow-hidden rounded-lg border border-slate-950/8 bg-white/42 backdrop-blur dark:border-white/8 dark:bg-white/5">
+          <section className="axiss-motion-fade-up overflow-hidden rounded-lg border border-slate-950/8 bg-white/42 backdrop-blur dark:border-white/8 dark:bg-white/5">
             <div className="grid gap-px bg-slate-950/8 sm:grid-cols-3 dark:bg-white/8">
               {dashboardStats.map((item, index) => (
                 <div
@@ -861,7 +863,7 @@ export function HomePageClient({
         </section>
 
         <aside className="space-y-4 lg:sticky lg:top-[8.5rem] lg:self-start">
-          <section className="axiss-motion-side axiss-panel axiss-shimmer-edge space-y-4 rounded-lg p-4">
+          <section className="axiss-motion-side axiss-panel space-y-4 rounded-lg p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-slate-950 dark:text-slate-100">
@@ -986,6 +988,29 @@ export function HomePageClient({
         link={editingLink}
         onSuccess={fetchLinks}
         onLocateExistingLink={handleLocateExistingLink}
+      />
+
+      <ConfirmDialog
+        open={pendingBulkAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingBulkAction(null);
+        }}
+        title={pendingBulkAction === "refresh" ? "确认刷新网站信息" : "确认分析待整理"}
+        description={
+          pendingBulkAction === "refresh"
+            ? "将重新抓取所有链接的标题、描述和图标，可能覆盖已手动修改的内容。确定继续吗？"
+            : "将对所有未整理的链接调用 AI 分析并更新内容，可能需要较长时间。确定继续吗？"
+        }
+        confirmText="继续"
+        cancelText="取消"
+        loading={bulkAction !== null}
+        onConfirm={() => {
+          if (pendingBulkAction) {
+            const action = pendingBulkAction;
+            setPendingBulkAction(null);
+            handleBulkAnalyze(action);
+          }
+        }}
       />
     </main>
   );

@@ -414,10 +414,6 @@
       0 20px 44px rgba(0, 0, 0, 0.28);
   }
 
-  .axiss-motion-card {
-    will-change: transform, opacity;
-  }
-
   .axiss-action-lift {
     transition:
       transform 180ms ease,
@@ -446,59 +442,6 @@
     transform: translate3d(2px, -2px, 0) rotate(6deg);
   }
 
-  .axiss-shimmer-edge {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
-  }
-
-  .axiss-shimmer-edge::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    border-radius: inherit;
-    background: linear-gradient(
-      115deg,
-      transparent 0 36%,
-      rgba(59, 130, 124, 0.12) 48%,
-      transparent 62% 100%
-    );
-    opacity: 0;
-    transform: translateX(-28%);
-    transition:
-      opacity 220ms ease,
-      transform 620ms ease;
-    pointer-events: none;
-  }
-
-  .axiss-shimmer-edge > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .dark .axiss-shimmer-edge::after {
-    background: linear-gradient(
-      115deg,
-      transparent 0 36%,
-      rgba(120, 214, 198, 0.14) 48%,
-      transparent 62% 100%
-    );
-  }
-
-  .axiss-shimmer-edge:hover::after {
-    opacity: 1;
-    transform: translateX(28%);
-  }
-
-  .axiss-highlight-pulse {
-    will-change: box-shadow;
-  }
-
-  .axiss-status-breathe {
-    will-change: transform;
-  }
-
   .axiss-surface-row {
     transition:
       transform 180ms ease,
@@ -516,6 +459,7 @@
   }
 
   .axiss-gsap-enabled .axiss-motion-stat:hover,
+  .axiss-gsap-enabled .axiss-motion-card:hover,
   .axiss-gsap-enabled .axiss-action-lift:hover,
   .axiss-gsap-enabled .axiss-action-lift:active,
   .axiss-gsap-enabled .group:hover .axiss-icon-drift,
@@ -545,8 +489,7 @@
     .axiss-motion-side,
     .axiss-action-lift,
     .axiss-icon-drift,
-    .axiss-surface-row,
-    .axiss-shimmer-edge::after {
+    .axiss-surface-row {
       transition: none !important;
     }
 

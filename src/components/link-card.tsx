@@ -173,7 +173,7 @@ export function LinkCard({
 
   return (
     <article
-      className={`axiss-motion-card axiss-shimmer-edge axiss-panel group flex min-h-[11rem] flex-col rounded-lg p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-950/14 hover:shadow-[0_20px_52px_rgba(31,43,50,0.1)] dark:hover:border-white/14 dark:hover:shadow-[0_22px_58px_rgba(0,0,0,0.3)] ${
+      className={`axiss-motion-card axiss-panel group flex min-h-[11rem] flex-col rounded-lg p-4 transition-[border-color,box-shadow] duration-300 hover:border-slate-950/14 hover:shadow-[0_20px_52px_rgba(31,43,50,0.1)] dark:hover:border-white/14 dark:hover:shadow-[0_22px_58px_rgba(0,0,0,0.3)] ${
         isHighlighted
           ? "axiss-highlight-pulse ring-2 ring-teal-700/32 shadow-[0_0_0_1px_rgba(45,111,104,0.12),0_20px_54px_rgba(31,43,50,0.12)] dark:ring-[#b7e4dc]/38"
           : ""
