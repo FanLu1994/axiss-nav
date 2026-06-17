@@ -1,105 +1,94 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import type { TagItem } from "@/lib/home-types";
 
-interface Tag {
-  name: string
-  count: number
-  icon?: string
-  color?: string
-}
-
-export function RandomTags({ onTagClick }: { onTagClick?: (tag: string) => void }) {
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+export function RandomTags({
+  initialTags = [],
+  onTagClick,
+}: {
+  initialTags?: TagItem[];
+  onTagClick?: (tag: string) => void;
+}) {
+  const [tags, setTags] = useState<TagItem[]>(initialTags);
+  const [loading, setLoading] = useState(initialTags.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchTags()
-  }, [])
+    if (initialTags.length > 0) {
+      return;
+    }
+
+    fetchTags();
+  }, [initialTags.length]);
 
   const fetchTags = async (forceRefresh = false) => {
     try {
       if (forceRefresh) {
-        setRefreshing(true)
+        setRefreshing(true);
       } else {
-        setLoading(true)
+        setLoading(true);
       }
-      
-      // 添加时间戳防止缓存，刷新时使用随机emoji
-      const params = new URLSearchParams()
+
+      const params = new URLSearchParams();
       if (forceRefresh) {
-        params.set('t', Date.now().toString())
-        params.set('randomEmoji', 'true') // 刷新时使用随机emoji
+        params.set("t", Date.now().toString());
+        params.set("randomEmoji", "true");
       }
-      const queryString = params.toString()
-      const url = `/api/tags${queryString ? `?${queryString}` : ''}`
-      
-      const response = await fetch(url)
-      
+
+      const response = await fetch(`/api/tags${params.toString() ? `?${params}` : ""}`);
       if (response.ok) {
-        const data = await response.json()
-        // 直接使用API返回的数据，包含emoji
-        setTags(data.data || [])
-      } else {
-        console.error('获取标签失败')
+        const data = await response.json();
+        setTags(data.data || []);
       }
     } catch (error) {
-      console.error('获取标签错误:', error)
+      console.error("获取标签错误:", error);
     } finally {
-      setLoading(false)
-      setRefreshing(false)
+      setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
-  const handleRefresh = () => {
-    fetchTags(true)
-  }
-
-  const handleTagClick = (tagName: string) => {
-    onTagClick?.(tagName)
-  }
-
-  if (loading) {
-    return null // 直接返回null，让skeleton组件显示
-  }
-
-  if (tags.length === 0) {
-    return null
+  if (loading || tags.length === 0) {
+    return null;
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto mb-4 py-2">
-      <div className="flex items-center justify-center mb-3">
-        <h3 className="text-sm font-medium text-gray-700 mr-2">热门标签</h3>
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-950 dark:text-slate-100">热门标签</h2>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">点击标签筛选链接</p>
+        </div>
         <Button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          size="sm"
+          type="button"
           variant="outline"
-          className="h-6 px-2 text-xs bg-white/60 backdrop-blur-sm border-gray-200/40 hover:bg-blue-50/60 hover:border-blue-200/60 cursor-pointer"
+          size="icon"
+          className="axiss-action-lift h-8 w-8"
+          onClick={() => fetchTags(true)}
+          disabled={refreshing}
         >
-          {refreshing ? (
-            <span className="animate-spin">🔄</span>
-          ) : (
-            <span>🎲</span>
-          )}
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          <span className="sr-only">刷新标签</span>
         </Button>
       </div>
-      <div className="flex flex-wrap justify-center gap-1">
-        {tags.slice(0, 7).map((tag, index) => (
+
+      <div className="flex flex-wrap gap-2">
+        {tags.slice(0, 12).map((tag, index) => (
           <button
-            key={`${tag.name}-${index}`}
-            onClick={() => handleTagClick(tag.name)}
-            className="px-2 py-1 text-xs font-medium text-gray-600 rounded-full border border-gray-200/40 hover:bg-blue-50/60 hover:text-blue-600 hover:border-blue-200/60 transition-all duration-200 cursor-pointer whitespace-nowrap bg-white/60 backdrop-blur-sm shadow-sm flex items-center gap-1"
+            key={tag.name}
+            type="button"
+            onClick={() => onTagClick?.(tag.name)}
+            className="axiss-motion-fade-up axiss-surface-row inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-800/18 hover:bg-white/72 hover:text-teal-900 dark:text-slate-300 dark:hover:border-teal-100/18 dark:hover:bg-white/8 dark:hover:text-[#b7e4dc]"
+            style={{ animationDelay: `${index * 28}ms` }}
           >
-            <span className="text-xs">{tag.icon}</span>
             <span>{tag.name}</span>
-            <span className="ml-1 text-xs opacity-50">({tag.count})</span>
+            <span className="tabular-nums text-slate-400">{tag.count}</span>
           </button>
         ))}
       </div>
-    </div>
-  )
-} 
+    </section>
+  );
+}

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-labelledby="title desc">
+  <title id="title">Axiss Nav orbit preview</title>
+  <desc id="desc">An abstract orbit map showing grouped links and recommendation paths.</desc>
+  <defs>
+    <radialGradient id="glow" cx="52%" cy="44%" r="58%">
+      <stop stop-color="#65ffe3" stop-opacity=".42" />
+      <stop offset=".45" stop-color="#24b8d0" stop-opacity=".16" />
+      <stop offset="1" stop-color="#07161d" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="panel" x1="82" x2="829" y1="80" y2="505" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10252e" />
+      <stop offset=".52" stop-color="#0b1a22" />
+      <stop offset="1" stop-color="#08131a" />
+    </linearGradient>
+    <filter id="shadow" width="130%" height="130%" x="-15%" y="-15%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" flood-color="#000000" flood-opacity=".34" stdDeviation="28" />
+    </filter>
+  </defs>
+  <rect width="900" height="560" fill="#08131a" rx="32" />
+  <rect width="900" height="560" fill="url(#glow)" rx="32" />
+  <g opacity=".2">
+    <path fill="none" stroke="#d6f8f2" stroke-width="1" d="M92 126h716M92 226h716M92 326h716M92 426h716M178 70v420M310 70v420M442 70v420M574 70v420M706 70v420" />
+  </g>
+  <g filter="url(#shadow)">
+    <rect width="676" height="392" x="112" y="82" fill="url(#panel)" stroke="#d6f8f2" stroke-opacity=".14" rx="24" />
+    <path fill="none" stroke="#38d6c8" stroke-linecap="round" stroke-width="5" d="M190 362c92-95 155-126 240-96 81 28 126-3 164-70 30-52 70-78 129-78" />
+    <path fill="none" stroke="#74f6d5" stroke-linecap="round" stroke-opacity=".34" stroke-width="2" d="M218 172c94 43 142 52 215 10 88-50 177-35 270 44" />
+    <path fill="none" stroke="#38d6c8" stroke-linecap="round" stroke-opacity=".22" stroke-width="2" d="M256 410c97-5 161-30 211-91 55-68 124-89 205-61" />
+    <g fill="#d9fff7">
+      <circle cx="190" cy="362" r="18" />
+      <circle cx="430" cy="266" r="16" />
+      <circle cx="594" cy="196" r="16" />
+      <circle cx="723" cy="118" r="19" />
+    </g>
+    <g fill="#38d6c8">
+      <circle cx="190" cy="362" r="8" />
+      <circle cx="430" cy="266" r="7" />
+      <circle cx="594" cy="196" r="7" />
+      <circle cx="723" cy="118" r="8" />
+    </g>
+    <g fill="#d9fff7" fill-opacity=".1" stroke="#d9fff7" stroke-opacity=".12">
+      <rect width="130" height="64" x="182" y="134" rx="14" />
+      <rect width="146" height="64" x="548" y="328" rx="14" />
+      <rect width="104" height="64" x="318" y="372" rx="14" />
+    </g>
+    <g fill="#d9fff7" fill-opacity=".48">
+      <rect width="66" height="7" x="213" y="161" rx="4" />
+      <rect width="82" height="7" x="580" y="355" rx="4" />
+      <rect width="54" height="7" x="343" y="399" rx="4" />
+    </g>
+  </g>
+</svg>

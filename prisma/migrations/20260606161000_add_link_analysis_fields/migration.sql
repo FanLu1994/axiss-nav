@@ -1,0 +1,7 @@
+CREATE TYPE "AnalysisStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
+
+ALTER TABLE "links"
+ADD COLUMN "analysisStatus" "AnalysisStatus" NOT NULL DEFAULT 'PENDING',
+ADD COLUMN "lastAnalyzedAt" TIMESTAMP(3),
+ADD COLUMN "lastCheckedAt" TIMESTAMP(3),
+ADD COLUMN "isAvailable" BOOLEAN;

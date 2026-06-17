@@ -1,167 +1,137 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Sparkles } from "lucide-react"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight, RefreshCw } from "lucide-react";
+import type { RecommendedLinkItem } from "@/lib/home-types";
 
-interface RecommendedLink {
-  id: string
-  title: string
-  url: string
-  description?: string
-  icon?: string
-  clickCount: number
-  createdAt: string
-  tags: string[] // 现在是字符串数组
-  category?: string
-  color?: string
+function getDomain(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
-export function RecommendedLinks() {
-  const [links, setLinks] = useState<RecommendedLink[]>([])
-  const [loading, setLoading] = useState(true)
-  const [randomizing, setRandomizing] = useState(false)
+export function RecommendedLinks({ initialLinks = [] }: { initialLinks?: RecommendedLinkItem[] }) {
+  const [links, setLinks] = useState<RecommendedLinkItem[]>(initialLinks);
+  const [loading, setLoading] = useState(initialLinks.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchRecommendedLinks()
-  }, [])
+    if (initialLinks.length > 0) {
+      return;
+    }
 
-  const fetchRecommendedLinks = async () => {
+    fetchRecommendedLinks({ showInitialLoading: true });
+  }, [initialLinks.length]);
+
+  const fetchRecommendedLinks = async ({ showInitialLoading = false } = {}) => {
     try {
-      setLoading(true)
-      const response = await fetch('/api/links/recommend')
+      if (showInitialLoading) {
+        setLoading(true);
+      }
+      setRefreshing(true);
+      const response = await fetch("/api/links/recommend");
       if (response.ok) {
-        const data = await response.json()
-        setLinks(data.data || [])
-      } else {
-        console.error('获取推荐链接失败')
+        const data = await response.json();
+        setLinks(data.data || []);
       }
     } catch (error) {
-      console.error('获取推荐链接错误:', error)
+      console.error("获取推荐链接错误:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
-  const handleLinkClick = async (linkId: string, url: string) => {
-    try {
-      // 记录点击
-      await fetch('/api/links/click', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ linkId })
-      })
-      
-      // 打开链接
-      window.open(url, '_blank')
-    } catch (error) {
-      console.error('记录点击失败:', error)
-      // 即使记录失败也打开链接
-      window.open(url, '_blank')
+  const recordClick = (linkId: string) => {
+    const body = JSON.stringify({ linkId });
+
+    if (navigator.sendBeacon) {
+      const sent = navigator.sendBeacon(
+        "/api/links/click",
+        new Blob([body], { type: "application/json" })
+      );
+
+      if (sent) return;
     }
-  }
 
-  const handleRandomVisit = async () => {
-    try {
-      setRandomizing(true)
-      const response = await fetch('/api/links/random')
-      
-      if (response.ok) {
-        const data = await response.json()
-        const randomLink = data.data
-        
-        // 记录点击并打开随机链接
-        await handleLinkClick(randomLink.id, randomLink.url)
-      } else {
-        console.error('获取随机链接失败')
-      }
-    } catch (error) {
-      console.error('随机访问错误:', error)
-    } finally {
-      setRandomizing(false)
-    }
-  }
+    fetch("/api/links/click", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch((error) => {
+      console.error("记录点击失败:", error);
+    });
+  };
 
-  if (loading) {
-    return null // 直接返回null，让skeleton组件显示
-  }
+  const openLink = (linkId: string, url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+    recordClick(linkId);
+  };
 
-  if (links.length === 0) {
-    return null
+  if (loading || links.length === 0) {
+    return null;
   }
 
   return (
-    <div className="w-full mb-8">
-      <div className="flex items-center justify-center mb-6">
-        <div className="flex items-center space-x-2 text-gray-400">
-          <div className="w-8 h-px bg-gradient-to-r from-transparent to-gray-200"></div>
-          <Sparkles className="w-3 h-3" />
-          <span className="text-xs font-light tracking-wide">推荐</span>
-          <Sparkles className="w-3 h-3" />
-          <div className="w-8 h-px bg-gradient-to-l from-transparent to-gray-200"></div>
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-950 dark:text-slate-100">快捷入口</h2>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">基于点击和收藏时间推荐</p>
         </div>
-      </div>
-      <div className="flex flex-wrap justify-center gap-4">
-        {links.map((link) => (
-          <div
-            key={link.id}
-            className="group cursor-pointer hover:scale-105 transition-all duration-200 flex flex-col items-center justify-center text-center"
-            onClick={() => handleLinkClick(link.id, link.url)}
-          >
-            <div className="flex flex-col items-center space-y-1">
-              {link.icon ? (
-                <div className="w-5 h-5 flex items-center justify-center">
-                  {link.icon.startsWith('data:') || link.icon.startsWith('http://') || link.icon.startsWith('https://') ? (
-                    <img 
-                      src={link.icon} 
-                      alt={link.title}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <span className="text-sm">{link.icon}</span>
-                  )}
-                </div>
-              ) : (
-                <div className="w-5 h-5 flex items-center justify-center">
-                  <img 
-                    src={`https://www.google.com/s2/favicons?sz=32&domain_url=${encodeURIComponent(link.url)}`}
-                    alt={link.title}
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                </div>
-              )}
-              <div className="text-xs text-gray-600 leading-tight line-clamp-1 group-hover:text-gray-800 transition-colors max-w-[60px]">
-                {link.title}
-              </div>
-            </div>
-          </div>
-        ))}
-        {/* 随机访问按钮 */}
-        <div
-          className="group cursor-pointer hover:scale-105 transition-all duration-200 flex flex-col items-center justify-center text-center border border-dashed border-gray-300 rounded-lg p-2 hover:border-blue-300"
-          onClick={handleRandomVisit}
+        <Button
+          variant="outline"
+          size="icon"
+          className="axiss-action-lift"
+          onClick={() => fetchRecommendedLinks()}
+          disabled={refreshing}
+          aria-label="刷新快捷入口"
         >
-          <div className="flex flex-col items-center space-y-1">
-            <div className="w-5 h-5 flex items-center justify-center">
-              {randomizing ? (
-                <span className="text-sm animate-spin">🎯</span>
-              ) : (
-                <span className="text-sm">❓</span>
-              )}
-            </div>
-            <div className="text-xs text-gray-600 leading-tight line-clamp-1 group-hover:text-gray-800 transition-colors max-w-[60px]">
-              随便看看
-            </div>
-          </div>
-        </div>
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+        </Button>
       </div>
-    </div>
-  )
-} 
+
+      <div className="space-y-2">
+        {links.slice(0, 6).map((link, index) => (
+          <button
+            key={link.id}
+            type="button"
+            onClick={() => openLink(link.id, link.url)}
+            className="axiss-motion-fade-up axiss-surface-row group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/70 dark:hover:bg-white/8"
+            style={{ animationDelay: `${index * 45}ms` }}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/70 text-xs font-semibold text-slate-800 ring-1 ring-slate-950/8 dark:bg-white/8 dark:text-[#b7e4dc] dark:ring-white/10">
+              {link.icon ? (
+                <img
+                  src={link.icon}
+                  alt={`${link.title} 图标`}
+                  width={20}
+                  height={20}
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  className="h-5 w-5 object-contain"
+                />
+              ) : (
+                link.title.charAt(0).toUpperCase()
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+                {link.title}
+              </span>
+              <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                {getDomain(link.url)}
+              </span>
+            </span>
+            <ArrowUpRight className="axiss-icon-drift h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-teal-800 dark:text-slate-600 dark:group-hover:text-[#b7e4dc]" />
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}

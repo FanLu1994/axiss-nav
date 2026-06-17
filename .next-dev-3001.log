@@ -1,0 +1,61 @@
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://198.18.0.1:3001
+   - Environments: .env
+
+ ✓ Starting...
+Creating turbopack project { dir: 'D:\\app\\axiss-nav', testMode: true }
+Slow filesystem detected. If D:\app\axiss-nav\.next is a network drive, consider moving it to a local folder. If you have an antivirus enabled, consider excluding your project directory.
+ ✓ Ready in 4.1s
+ ○ Compiling / ...
+ ✓ Compiled / in 6s
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.count()` invocation in
+D:\app\axiss-nav\.next\server\chunks\ssr\[root-of-the-server]__21bccc4f._.js:815:141
+
+  812 }
+  813 async function getInitialLinks(pageSize = 20) {
+  814     const [total, links] = await Promise.all([
+→ 815         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.count(
+Can't reach database server at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.findMany()` invocation in
+D:\app\axiss-nav\.next\server\chunks\ssr\[root-of-the-server]__21bccc4f._.js:820:141
+
+  817         isActive: true
+  818     }
+  819 }),
+→ 820 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.findMany(
+Can't reach database server at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.findMany()` invocation in
+D:\app\axiss-nav\.next\server\chunks\ssr\[root-of-the-server]__21bccc4f._.js:868:157
+
+  865     };
+  866 }
+  867 async function getRecommendedLinks(limit = 7) {
+→ 868     const links = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.findMany(
+Can't reach database server at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.findMany()` invocation in
+D:\app\axiss-nav\.next\server\chunks\ssr\[root-of-the-server]__21bccc4f._.js:911:157
+
+  908         }));
+  909 }
+  910 async function getRandomTags(limit = 7, useRandomEmoji = false) {
+→ 911     const links = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].link.findMany(
+Can't reach database server at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-wild-flower-aptale8e-pooler.c-7.us-east-1.aws.neon.tech:5432`.
+ GET / 500 in 7238ms
+ ○ Compiling /icon.svg ...
+ ✓ Compiled /icon.svg in 1742ms
+ GET /favicon.ico 200 in 2464ms
+ GET /icon.svg 200 in 2552ms
+[?25h
